@@ -19,10 +19,12 @@ import {
 } from './lib/brain.fallback.prompts';
 import { defaultLabels, EPrompts, EProviders, type ParsedMessage, type Sender } from './types';
 import { WorkflowEntrypoint, WorkflowStep, type WorkflowEvent } from 'cloudflare:workers';
-import { connectionToDriver, notifyUser } from './lib/server-utils';
+import { connectionToDriver, notifyUser, getZeroAgent } from './lib/server-utils';
+import type { IGetThreadResponse } from './lib/driver/types';
+import { composeEmail } from './trpc/routes/ai/compose';
 import { type gmail_v1 } from '@googleapis/gmail';
+import { connection, summary } from './db/schema';
 import { env } from 'cloudflare:workers';
-import { connection } from './db/schema';
 import * as cheerio from 'cheerio';
 import { eq } from 'drizzle-orm';
 import { createDb } from './db';
@@ -41,6 +43,110 @@ const log = (message: string, ...args: any[]) => {
 type VectorizeVectorMetadata = 'connection' | 'thread' | 'summary';
 
 type IThreadSummaryMetadata = Record<VectorizeVectorMetadata, VectorizeVectorMetadata>;
+
+const shouldGenerateDraft = (
+  thread: IGetThreadResponse,
+  foundConnection: typeof connection.$inferSelect,
+): boolean => {
+  if (!thread.messages || thread.messages.length === 0) return false;
+
+  const latestMessage = thread.messages[thread.messages.length - 1];
+
+  if (latestMessage.sender?.email?.toLowerCase() === foundConnection.email?.toLowerCase()) {
+    return false;
+  }
+
+  if (
+    latestMessage.sender?.email?.toLowerCase().includes('no-reply') ||
+    latestMessage.sender?.email?.toLowerCase().includes('noreply') ||
+    latestMessage.sender?.email?.toLowerCase().includes('donotreply') ||
+    latestMessage.sender?.email?.toLowerCase().includes('do-not-reply') ||
+    latestMessage.subject?.toLowerCase().includes('newsletter') ||
+    latestMessage.subject?.toLowerCase().includes('unsubscribe') ||
+    latestMessage.subject?.toLowerCase().includes('notification') ||
+    latestMessage.decodedBody?.toLowerCase().includes('do not reply') ||
+    latestMessage.decodedBody?.toLowerCase().includes('this is an automated')
+  ) {
+    return false;
+  }
+
+  if (latestMessage.receivedOn) {
+    const messageDate = new Date(latestMessage.receivedOn);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    if (messageDate < sevenDaysAgo) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const analyzeEmailIntent = (message: ParsedMessage) => {
+  const content = (message.decodedBody || message.body || '').toLowerCase();
+  const subject = (message.subject || '').toLowerCase();
+
+  return {
+    isQuestion:
+      /\?/.test(content) ||
+      /\b(what|when|where|how|why|can you|could you|would you)\b/.test(content),
+    isRequest: /\b(please|request|need|require|can you|could you|would you mind)\b/.test(content),
+    isMeeting: /\b(meeting|schedule|calendar|appointment|call|zoom|teams|meet)\b/.test(
+      content + ' ' + subject,
+    ),
+    isUrgent: /\b(urgent|asap|immediate|priority|rush)\b/.test(content + ' ' + subject),
+  };
+};
+
+const generateAutomaticDraft = async (
+  connectionId: string,
+  thread: IGetThreadResponse,
+  foundConnection: typeof connection.$inferSelect,
+): Promise<string | null> => {
+  try {
+    const latestMessage = thread.messages[thread.messages.length - 1];
+
+    const emailAnalysis = analyzeEmailIntent(latestMessage);
+
+    let prompt = 'Generate a professional and contextually appropriate reply to this email thread.';
+
+    if (emailAnalysis.isQuestion) {
+      prompt =
+        'This email contains questions. Generate a helpful response that addresses the questions asked. Be thorough but concise.';
+    } else if (emailAnalysis.isRequest) {
+      prompt =
+        'This email contains a request. Generate a response that acknowledges the request and provides next steps or asks for clarification if needed.';
+    } else if (emailAnalysis.isMeeting) {
+      prompt =
+        'This email is about scheduling or meetings. Generate an appropriate response about availability, meeting coordination, or confirmation.';
+    } else if (emailAnalysis.isUrgent) {
+      prompt =
+        'This email appears urgent. Generate a prompt acknowledgment response that addresses the urgency and provides next steps.';
+    }
+
+    const threadMessages = thread.messages.map((message) => ({
+      from: message.sender?.name || message.sender?.email || 'Unknown',
+      to: message.to?.map((r) => r.name || r.email) || [],
+      cc: message.cc?.map((r) => r.name || r.email) || [],
+      subject: message.subject || '',
+      body: message.decodedBody || message.body || '',
+    }));
+
+    const draftContent = await composeEmail({
+      prompt,
+      threadMessages,
+      username: foundConnection.name || foundConnection.email || 'User',
+      connectionId,
+    });
+
+    return draftContent;
+  } catch (error) {
+    log('[THREAD_WORKFLOW] Failed to generate automatic draft:', {
+      connectionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+};
 
 export class MainWorkflow extends WorkflowEntrypoint<Env, Params> {
   async run(
@@ -475,6 +581,106 @@ export class ThreadWorkflow extends WorkflowEntrypoint<Env, Params> {
         if (!thread.messages || thread.messages.length === 0) {
           log('[THREAD_WORKFLOW] Thread has no messages, skipping processing');
           return;
+        }
+
+        const autoDraftId = await step.do(
+          `[THREAD_WORKFLOW] Generate Automatic Draft ${threadId} ${connectionId}`,
+          async () => {
+            if (!shouldGenerateDraft(thread, foundConnection)) {
+              log('[THREAD_WORKFLOW] Skipping draft generation for thread:', threadId);
+              return null;
+            }
+
+            log('[THREAD_WORKFLOW] Generating automatic draft for thread:', threadId);
+            const draftContent = await generateAutomaticDraft(
+              connectionId.toString(),
+              thread,
+              foundConnection,
+            );
+
+            if (draftContent) {
+              const agent = await getZeroAgent(connectionId.toString());
+              const latestMessage = thread.messages[thread.messages.length - 1];
+
+              const replyTo = latestMessage.sender?.email || '';
+              const cc =
+                latestMessage.cc
+                  ?.map((r) => r.email)
+                  .filter((email) => email && email !== foundConnection.email) || [];
+
+              const originalSubject = latestMessage.subject || '';
+              const replySubject = originalSubject.startsWith('Re: ')
+                ? originalSubject
+                : `Re: ${originalSubject}`;
+
+              const draftData = {
+                to: replyTo,
+                cc: cc.join(', '),
+                bcc: '',
+                subject: replySubject,
+                message: draftContent,
+                attachments: [],
+                id: null,
+                threadId: threadId.toString(),
+                fromEmail: foundConnection.email,
+              };
+
+              try {
+                const createdDraft = await agent.createDraft(draftData);
+                log('[THREAD_WORKFLOW] Created automatic draft:', {
+                  threadId,
+                  draftId: createdDraft?.id,
+                });
+                return createdDraft?.id || null;
+              } catch (error) {
+                log('[THREAD_WORKFLOW] Failed to create automatic draft:', {
+                  threadId,
+                  error: error instanceof Error ? error.message : String(error),
+                });
+                return null;
+              }
+            }
+
+            return null;
+          },
+        );
+
+        if (autoDraftId) {
+          await step.do(
+            `[THREAD_WORKFLOW] Store Draft Reference ${threadId} ${connectionId}`,
+            async () => {
+              try {
+                const latestMessage = thread.messages[thread.messages.length - 1];
+                await db
+                  .insert(summary)
+                  .values({
+                    messageId: latestMessage.id,
+                    content: '',
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    connectionId: connectionId.toString(),
+                    saved: false,
+                    suggestedReply: autoDraftId,
+                  })
+                  .onConflictDoUpdate({
+                    target: summary.messageId,
+                    set: {
+                      suggestedReply: autoDraftId,
+                      updatedAt: new Date(),
+                    },
+                  });
+
+                log('[THREAD_WORKFLOW] Stored draft reference in summary:', {
+                  messageId: latestMessage.id,
+                  draftId: autoDraftId,
+                });
+              } catch (error) {
+                log('[THREAD_WORKFLOW] Failed to store draft reference:', {
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              }
+            },
+          );
         }
 
         const messagesToVectorize = await step.do(
