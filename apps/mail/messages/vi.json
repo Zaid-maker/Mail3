@@ -165,8 +165,13 @@
       "attachments": "Tệp đính kèm",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "tệp đính kèm",
             "countPlural=one": "tệp đính kèm",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "tệp",
             "countPlural=one": "tệp",
@@ -249,8 +259,13 @@
       "search": "Tìm kiếm ghi chú...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Thêm ghi chú",
             "countPlural=one": "# ghi chú",
@@ -312,8 +327,13 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "phản hồi",
             "countPlural=one": "# phản hồi",
@@ -370,7 +390,8 @@
       "failedToMute": "Không thể tắt tiếng",
       "failedToUnmute": "Không thể bật tiếng",
       "archived": "Đã lưu trữ",
-      "failedToArchive": "Không thể lưu trữ"
+      "failedToArchive": "Không thể lưu trữ",
+      "openInNewTab": "Mở trong tab mới"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "Hỗ trợ trực tuyến",
       "feedback": "Phản hồi",
       "settings": "Cài đặt",
-      "voice": "Trợ lý giọng nói"
+      "voice": "Trợ lý giọng nói",
+      "snoozed": "Tạm hoãn"
     },
     "settings": {
       "general": "Chung",
@@ -414,7 +436,7 @@
       "signatures": "Chữ ký",
       "shortcuts": "Phím tắt",
       "labels": "Nhãn",
-      "categories": "Danh mục",
+      "categories": "Chế độ xem",
       "dangerZone": "Khu vực nguy hiểm",
       "deleteAccount": "Xóa tài khoản",
       "privacy": "Quyền riêng tư"
@@ -446,11 +468,15 @@
         "noResultsFound": "Không tìm thấy kết quả nào",
         "zeroSignature": "Chữ ký Zero",
         "zeroSignatureDescription": "Thêm chữ ký Zero vào email của bạn.",
+        "undoSendEnabled": "Hoàn tác gửi",
+        "undoSendEnabledDescription": "Cho phép hủy email trong vòng 30 giây sau khi gửi.",
         "defaultEmailAlias": "Bí danh email mặc định",
         "selectDefaultEmail": "Chọn email mặc định",
         "defaultEmailDescription": "Email này sẽ được sử dụng làm địa chỉ 'Từ' mặc định khi soạn email mới",
         "autoRead": "Tự động đọc",
-        "autoReadDescription": "Tự động đánh dấu email là đã đọc khi bạn nhấp vào chúng."
+        "autoReadDescription": "Tự động đánh dấu email là đã đọc khi bạn nhấp vào chúng.",
+        "animations": "Hiệu ứng động",
+        "animationsDescription": "Bật hiệu ứng chuyển động mượt mà khi chuyển đổi giữa các email"
       },
       "connections": {
         "title": "Kết nối email",

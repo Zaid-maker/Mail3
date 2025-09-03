@@ -1,34 +1,99 @@
 import {
-  connection,
-  user as _user,
-  account,
-  userSettings,
-  session,
-  userHotkeys,
-} from '../db/schema';
+  AIWritingAssistantEmail,
+  AutoLabelingEmail,
+  CategoriesEmail,
+  Mail0ProEmail,
+  ShortcutsEmail,
+  SuperSearchEmail,
+  WelcomeEmail,
+} from './react-emails/email-sequences';
 import { createAuthMiddleware, phoneNumber, jwt, bearer, mcp } from 'better-auth/plugins';
 import { type Account, betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getBrowserTimezone, isValidTimezone } from './timezones';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { getZeroDB, resetConnection } from './server-utils';
 import { getSocialProviders } from './auth-providers';
 import { redis, resend, twilio } from './services';
-import { getContext } from 'hono/context-storage';
+import { dubAnalytics } from '@dub/better-auth';
 import { defaultUserSettings } from './schemas';
-import { getMigrations } from 'better-auth/db';
 import { disableBrainFunction } from './brain';
-import { type EProviders } from '../types';
 import { APIError } from 'better-auth/api';
-import { getZeroDB } from './server-utils';
-import type { HonoContext } from '../ctx';
-import { env } from 'cloudflare:workers';
+import { type EProviders } from '../types';
 import { createDriver } from './driver';
-import { eq } from 'drizzle-orm';
+import { Autumn } from 'autumn-js';
 import { createDb } from '../db';
+import { Effect } from 'effect';
+import { env } from '../env';
+import { Dub } from 'dub';
+
+const scheduleCampaign = (userInfo: { address: string; name: string }) =>
+  Effect.gen(function* () {
+    const name = userInfo.name || 'there';
+    const resendService = resend();
+
+    const sendEmail = (subject: string, react: unknown, scheduledAt?: string) =>
+      Effect.promise(() =>
+        resendService.emails
+          .send({
+            from: '0.email <onboarding@0.email>',
+            to: userInfo.address,
+            subject,
+            react: react as any,
+            ...(scheduledAt && { scheduledAt }),
+          })
+          .then(() => void 0),
+      );
+
+    const emails = [
+      {
+        subject: 'Welcome to 0.email',
+        react: WelcomeEmail({ name }),
+        scheduledAt: undefined,
+      },
+      {
+        subject: 'Mail0 Pro is here 🚀💼',
+        react: Mail0ProEmail({ name }),
+        scheduledAt: 'in 1 day',
+      },
+      {
+        subject: 'Auto-labeling is here 🎉📥',
+        react: AutoLabelingEmail({ name }),
+        scheduledAt: 'in 2 days',
+      },
+      {
+        subject: 'AI Writing Assistant is here 🤖💬',
+        react: AIWritingAssistantEmail({ name }),
+        scheduledAt: 'in 3 days',
+      },
+      {
+        subject: 'Shortcuts are here 🔧🚀',
+        react: ShortcutsEmail({ name }),
+        scheduledAt: 'in 4 days',
+      },
+      {
+        subject: 'Categories are here 📂🔍',
+        react: CategoriesEmail({ name }),
+        scheduledAt: 'in 5 days',
+      },
+      {
+        subject: 'Super Search is here 🔍🚀',
+        react: SuperSearchEmail({ name }),
+        scheduledAt: 'in 6 days',
+      },
+    ];
+
+    yield* Effect.all(
+      emails.map((email) => sendEmail(email.subject, email.react, email.scheduledAt)),
+      { concurrency: 'unbounded' },
+    );
+  });
 
 const connectionHandlerHook = async (account: Account) => {
   if (!account.accessToken || !account.refreshToken) {
     console.error('Missing Access/Refresh Tokens', { account });
-    throw new APIError('EXPECTATION_FAILED', { message: 'Missing Access/Refresh Tokens' });
+    throw new APIError('EXPECTATION_FAILED', {
+      message: 'Missing Access/Refresh Tokens, contact us on Discord for support',
+    });
   }
 
   const driver = createDriver(account.providerId, {
@@ -40,13 +105,26 @@ const connectionHandlerHook = async (account: Account) => {
     },
   });
 
-  const userInfo = await driver.getUserInfo().catch(() => {
-    throw new APIError('UNAUTHORIZED', { message: 'Failed to get user info' });
+  const userInfo = await driver.getUserInfo().catch(async () => {
+    if (account.accessToken) {
+      await driver.revokeToken(account.accessToken);
+      await resetConnection(account.id);
+    }
+    throw new Response(null, { status: 301, headers: { Location: '/' } });
   });
 
   if (!userInfo?.address) {
-    console.error('Missing email in user info:', { userInfo });
-    throw new APIError('BAD_REQUEST', { message: 'Missing "email" in user info' });
+    try {
+      await Promise.allSettled(
+        [account.accessToken, account.refreshToken]
+          .filter(Boolean)
+          .map((t) => driver.revokeToken(t as string)),
+      );
+      await resetConnection(account.id);
+    } catch (error) {
+      console.error('Failed to revoke tokens:', error);
+    }
+    throw new Response(null, { status: 303, headers: { Location: '/' } });
   }
 
   const updatingInfo = {
@@ -58,12 +136,18 @@ const connectionHandlerHook = async (account: Account) => {
     expiresAt: new Date(Date.now() + (account.accessTokenExpiresAt?.getTime() || 3600000)),
   };
 
-  const db = getZeroDB(account.userId);
+  const db = await getZeroDB(account.userId);
   const [result] = await db.createConnection(
     account.providerId as EProviders,
     userInfo.address,
     updatingInfo,
   );
+
+  if (env.NODE_ENV === 'production') {
+    await Effect.runPromise(
+      scheduleCampaign({ address: userInfo.address, name: userInfo.name || 'there' }),
+    );
+  }
 
   if (env.GOOGLE_S_ACCOUNT && env.GOOGLE_S_ACCOUNT !== '{}') {
     await env.subscribe_queue.send({
@@ -75,9 +159,13 @@ const connectionHandlerHook = async (account: Account) => {
 
 export const createAuth = () => {
   const twilioClient = twilio();
+  const dub = new Dub();
 
   return betterAuth({
     plugins: [
+      dubAnalytics({
+        dubClient: dub,
+      }),
       mcp({
         loginPage: env.VITE_PUBLIC_APP_URL + '/login',
       }),
@@ -115,11 +203,11 @@ export const createAuth = () => {
         },
         beforeDelete: async (user, request) => {
           if (!request) throw new APIError('BAD_REQUEST', { message: 'Request object is missing' });
-          const db = getZeroDB(user.id);
+          const db = await getZeroDB(user.id);
           const connections = await db.findManyConnections();
-          const context = getContext<HonoContext>();
+          const autumn = new Autumn({ secretKey: env.AUTUMN_SECRET_KEY });
           try {
-            await context.var.autumn.customers.delete(user.id);
+            await autumn.customers.delete(user.id);
           } catch (error) {
             console.error('Failed to delete Autumn customer:', error);
             // Continue with deletion process despite Autumn failure
@@ -213,7 +301,7 @@ export const createAuth = () => {
           const newSession = ctx.context.newSession;
           if (newSession) {
             // Check if user already has settings
-            const db = getZeroDB(newSession.user.id);
+            const db = await getZeroDB(newSession.user.id);
             const existingSettings = await db.findUserSettings();
 
             if (!existingSettings) {
@@ -240,7 +328,7 @@ export const createAuth = () => {
 
 const createAuthConfig = () => {
   const cache = redis();
-  const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
+  const { db } = createDb(env.HYPERDRIVE.connectionString);
   return {
     database: drizzleAdapter(db, { provider: 'pg' }),
     secondaryStorage: {
@@ -291,7 +379,7 @@ const createAuthConfig = () => {
       },
     },
     onAPIError: {
-      onError: (error, ctx) => {
+      onError: (error) => {
         console.error('API Error', error);
       },
       errorURL: `${env.VITE_PUBLIC_APP_URL}/login`,

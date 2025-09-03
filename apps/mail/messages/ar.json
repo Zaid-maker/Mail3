@@ -165,8 +165,13 @@
       "attachments": "المرفقات",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "مرفقات",
             "countPlural=one": "مرفق",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "ملفات",
             "countPlural=one": "ملف",
@@ -249,12 +259,17 @@
       "search": "البحث في الملاحظات...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "إضافة ملاحظات",
             "countPlural=one": "ملاحظة واحدة",
-            "countPlural=other": "# ملاحظة"
+            "countPlural=other": "# ملاحظات"
           }
         }
       ],
@@ -312,12 +327,17 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "ردود",
             "countPlural=one": "رد واحد",
-            "countPlural=other": "# رد"
+            "countPlural=other": "# ردود"
           }
         }
       ],
@@ -370,7 +390,8 @@
       "failedToMute": "فشل الكتم",
       "failedToUnmute": "فشل إلغاء الكتم",
       "archived": "تمت الأرشفة",
-      "failedToArchive": "فشلت الأرشفة"
+      "failedToArchive": "فشلت الأرشفة",
+      "openInNewTab": "فتح في علامة تبويب جديدة"
     },
     "units": {
       "mb": "{amount} ميجابايت"
@@ -404,7 +425,8 @@
       "livesupport": "الدعم المباشر",
       "feedback": "الملاحظات",
       "settings": "الإعدادات",
-      "voice": "المساعد الصوتي"
+      "voice": "المساعد الصوتي",
+      "snoozed": "مؤجل"
     },
     "settings": {
       "general": "عام",
@@ -414,7 +436,7 @@
       "signatures": "التوقيعات",
       "shortcuts": "الاختصارات",
       "labels": "التصنيفات",
-      "categories": "الفئات",
+      "categories": "العروض",
       "dangerZone": "منطقة الخطر",
       "deleteAccount": "حذف الحساب",
       "privacy": "الخصوصية"
@@ -446,11 +468,15 @@
         "noResultsFound": "لم يتم العثور على نتائج",
         "zeroSignature": "توقيع Zero",
         "zeroSignatureDescription": "إضافة توقيع Zero إلى رسائل البريد الإلكتروني الخاصة بك.",
+        "undoSendEnabled": "التراجع عن الإرسال",
+        "undoSendEnabledDescription": "السماح بإلغاء رسائل البريد الإلكتروني خلال 30 ثانية من إرسالها.",
         "defaultEmailAlias": "الاسم المستعار الافتراضي للبريد الإلكتروني",
         "selectDefaultEmail": "اختر البريد الإلكتروني الافتراضي",
         "defaultEmailDescription": "سيتم استخدام هذا البريد الإلكتروني كعنوان \"من\" الافتراضي عند إنشاء رسائل إلكترونية جديدة",
         "autoRead": "قراءة تلقائية",
-        "autoReadDescription": "وضع علامة على رسائل البريد الإلكتروني كمقروءة تلقائيًا عند النقر عليها."
+        "autoReadDescription": "وضع علامة على رسائل البريد الإلكتروني كمقروءة تلقائيًا عند النقر عليها.",
+        "animations": "الرسوم المتحركة",
+        "animationsDescription": "تمكين الرسوم المتحركة السلسة عند التبديل بين رسائل البريد الإلكتروني"
       },
       "connections": {
         "title": "اتصالات البريد الإلكتروني",

@@ -73,7 +73,7 @@ export default function DeveloperPage() {
     <div className="bg-background flex min-h-screen w-full flex-col">
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1600px] p-4 md:p-6 lg:p-8">
-          <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 mb-8 backdrop-blur">
+          <div className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-10 mb-8 backdrop-blur">
             <Button
               variant="ghost"
               size="sm"
@@ -94,7 +94,7 @@ export default function DeveloperPage() {
 
           <div className="grid grid-cols-1 gap-4 pb-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {developerResources.map((resource) => (
-              <Card key={resource.title} className="transition-all hover:shadow-md">
+              <Card key={resource.title} className="hover:shadow-md">
                 <CardHeader className="sm:p-6">
                   <div className="flex items-start gap-4 sm:items-center">
                     <div className={`shrink-0 rounded-lg ${resource.bgColor} p-2.5`}>

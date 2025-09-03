@@ -165,8 +165,13 @@
       "attachments": "Pielikumi",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "pielikumi",
             "countPlural=one": "pielikums",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "faili",
             "countPlural=one": "fails",
@@ -249,8 +259,13 @@
       "search": "Meklēt piezīmes...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Pievienot piezīmes",
             "countPlural=one": "# piezīme",
@@ -312,8 +327,13 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "atbildes",
             "countPlural=one": "# atbilde",
@@ -370,7 +390,8 @@
       "failedToMute": "Neizdevās apklusināt",
       "failedToUnmute": "Neizdevās atjaunot skaņu",
       "archived": "Arhivēts",
-      "failedToArchive": "Neizdevās arhivēt"
+      "failedToArchive": "Neizdevās arhivēt",
+      "openInNewTab": "Atvērt jaunā cilnē"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "Tiešsaistes atbalsts",
       "feedback": "Atsauksmes",
       "settings": "Iestatījumi",
-      "voice": "Balss asistents"
+      "voice": "Balss asistents",
+      "snoozed": "Atlikti"
     },
     "settings": {
       "general": "Vispārīgi",
@@ -414,7 +436,7 @@
       "signatures": "Paraksti",
       "shortcuts": "Īsceļi",
       "labels": "Iezīmes",
-      "categories": "Kategorijas",
+      "categories": "Skati",
       "dangerZone": "Bīstamā zona",
       "deleteAccount": "Dzēst kontu",
       "privacy": "Privātums"
@@ -446,11 +468,15 @@
         "noResultsFound": "Netika atrasts neviens rezultāts",
         "zeroSignature": "Zero paraksts",
         "zeroSignatureDescription": "Pievienot Zero parakstu saviem e-pastiem.",
+        "undoSendEnabled": "Atsaukt nosūtīšanu",
+        "undoSendEnabledDescription": "Ļaut atcelt e-pastus 30 sekunžu laikā pēc nosūtīšanas.",
         "defaultEmailAlias": "Noklusējuma e-pasta aizstājvārds",
         "selectDefaultEmail": "Izvēlieties noklusējuma e-pastu",
         "defaultEmailDescription": "Šis e-pasts tiks izmantots kā noklusējuma 'No' adrese, rakstot jaunus e-pastus",
         "autoRead": "Automātiska lasīšana",
-        "autoReadDescription": "Automātiski atzīmēt e-pastus kā izlasītus, kad uz tiem uzklikšķināt."
+        "autoReadDescription": "Automātiski atzīmēt e-pastus kā izlasītus, kad uz tiem uzklikšķināt.",
+        "animations": "Animācijas",
+        "animationsDescription": "Iespējot plūstošas animācijas, pārslēdzoties starp e-pastiem"
       },
       "connections": {
         "title": "E-pasta savienojumi",

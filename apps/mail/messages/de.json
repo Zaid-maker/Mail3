@@ -165,8 +165,13 @@
       "attachments": "Anhänge",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Anhänge",
             "countPlural=one": "Anhang",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Dateien",
             "countPlural=one": "Datei",
@@ -249,8 +259,13 @@
       "search": "Notizen durchsuchen...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Füge Notizen hinzu",
             "countPlural=one": "# Notiz",
@@ -312,8 +327,13 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Antworten",
             "countPlural=one": "# Antwort",
@@ -370,7 +390,8 @@
       "failedToMute": "Stummschaltung fehlgeschlagen",
       "failedToUnmute": "Aufhebung der Stummschaltung fehlgeschlagen",
       "archived": "Archiviert",
-      "failedToArchive": "Archivierung fehlgeschlagen"
+      "failedToArchive": "Archivierung fehlgeschlagen",
+      "openInNewTab": "In neuem Tab öffnen"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "Live-Support",
       "feedback": "Rückmeldung",
       "settings": "Einstellungen",
-      "voice": "Sprachassistent"
+      "voice": "Sprachassistent",
+      "snoozed": "Zurückgestellt"
     },
     "settings": {
       "general": "Allgemein",
@@ -414,7 +436,7 @@
       "signatures": "Signaturen",
       "shortcuts": "Shortcuts",
       "labels": "Labels",
-      "categories": "Kategorien",
+      "categories": "Ansichten",
       "dangerZone": "Gefahrenbereich",
       "deleteAccount": "Konto löschen",
       "privacy": "Datenschutz"
@@ -446,11 +468,15 @@
         "noResultsFound": "Keine Ergebnisse gefunden",
         "zeroSignature": "Zero-Signatur",
         "zeroSignatureDescription": "Füge deinen E-Mails eine Zero-Signatur hinzu.",
+        "undoSendEnabled": "Senden rückgängig machen",
+        "undoSendEnabledDescription": "Ermöglicht das Abbrechen von E-Mails innerhalb von 30 Sekunden nach dem Senden.",
         "defaultEmailAlias": "Standard-E-Mail-Alias",
         "selectDefaultEmail": "Standard-E-Mail auswählen",
         "defaultEmailDescription": "Diese E-Mail wird als Standard-Absenderadresse beim Verfassen neuer E-Mails verwendet",
         "autoRead": "Auto-Lesen",
-        "autoReadDescription": "E-Mails automatisch als gelesen markieren, wenn du sie anklickst."
+        "autoReadDescription": "E-Mails automatisch als gelesen markieren, wenn du sie anklickst.",
+        "animations": "Animationen",
+        "animationsDescription": "Aktiviere sanfte Animationen beim Wechseln zwischen E-Mails"
       },
       "connections": {
         "title": "E-Mail Verbindungen",

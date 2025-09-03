@@ -165,8 +165,13 @@
       "attachments": "Přílohy",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "příloh",
             "countPlural=one": "příloha",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "souborů",
             "countPlural=one": "soubor",
@@ -249,8 +259,13 @@
       "search": "Hledat poznámky...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Přidat poznámku",
             "countPlural=one": "# poznámka",
@@ -312,12 +327,17 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "odpovědí",
-            "countPlural=one": "#odpověď",
-            "countPlural=other": "#odpovědí"
+            "countPlural=one": "# odpověď",
+            "countPlural=other": "# odpovědí"
           }
         }
       ],
@@ -370,7 +390,8 @@
       "failedToMute": "Ztlumení se nezdařilo",
       "failedToUnmute": "Zrušení ztlumení se nezdařilo",
       "archived": "Archivováno",
-      "failedToArchive": "Archivace se nezdařila"
+      "failedToArchive": "Archivace se nezdařila",
+      "openInNewTab": "Otevřít v nové záložce"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "Živá podpora",
       "feedback": "Zpětná vazba",
       "settings": "Nastavení",
-      "voice": "Hlasový asistent"
+      "voice": "Hlasový asistent",
+      "snoozed": "Odložené"
     },
     "settings": {
       "general": "Obecné",
@@ -414,7 +436,7 @@
       "signatures": "Podpisy",
       "shortcuts": "Zástupci",
       "labels": "Štítky",
-      "categories": "Kategorie",
+      "categories": "Pohledy",
       "dangerZone": "Nebezpečná zóna",
       "deleteAccount": "Smazat účet",
       "privacy": "Soukromí"
@@ -446,11 +468,15 @@
         "noResultsFound": "Nebyly nalezeny žádné výsledky",
         "zeroSignature": "Zero podpis",
         "zeroSignatureDescription": "Přidat Zero podpis k vašim emailům.",
+        "undoSendEnabled": "Odvolat odeslání",
+        "undoSendEnabledDescription": "Umožnit zrušení e-mailů do 30 sekund po odeslání.",
         "defaultEmailAlias": "Výchozí e-mailový alias",
         "selectDefaultEmail": "Vybrat výchozí e-mail",
         "defaultEmailDescription": "Tento e-mail bude použit jako výchozí adresa 'Od' při psaní nových e-mailů",
         "autoRead": "Automatické přečtení",
-        "autoReadDescription": "Automaticky označit e-maily jako přečtené při kliknutí na ně."
+        "autoReadDescription": "Automaticky označit e-maily jako přečtené při kliknutí na ně.",
+        "animations": "Animace",
+        "animationsDescription": "Povolit plynulé animace při přepínání mezi e-maily"
       },
       "connections": {
         "title": "Propojení emailu",

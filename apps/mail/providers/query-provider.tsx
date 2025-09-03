@@ -4,15 +4,14 @@ import {
   type Persister,
 } from '@tanstack/react-query-persist-client';
 import { QueryCache, QueryClient, hashKey, type InfiniteData } from '@tanstack/react-query';
-import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client';
 import { createTRPCContext } from '@trpc/tanstack-react-query';
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import { useMemo, type PropsWithChildren } from 'react';
 import type { AppRouter } from '@zero/server/trpc';
 import { CACHE_BURST_KEY } from '@/lib/constants';
 import { signOut } from '@/lib/auth-client';
 import { get, set, del } from 'idb-keyval';
 import superjson from 'superjson';
-import { toast } from 'sonner';
 
 function createIDBPersister(idbValidKey: IDBValidKey = 'zero-query-cache') {
   return {
@@ -34,7 +33,10 @@ export const makeQueryClient = (connectionId: string | null) =>
       onError: (err, { meta }) => {
         if (meta && meta.noGlobalError === true) return;
         if (meta && typeof meta.customError === 'string') console.error(meta.customError);
-        else if (err.message === 'Required scopes missing') {
+        else if (
+          err.message === 'Required scopes missing' ||
+          err.message.includes('Invalid connection')
+        ) {
           signOut({
             fetchOptions: {
               onSuccess: () => {
@@ -51,7 +53,7 @@ export const makeQueryClient = (connectionId: string | null) =>
         retry: false,
         refetchOnWindowFocus: false,
         queryKeyHashFn: (queryKey) => hashKey([{ connectionId }, ...queryKey]),
-        gcTime: 1000 * 60 * 60 * 24,
+        gcTime: 1000 * 60 * 60 * 24, // 24 hours,
       },
       mutations: {
         onError: (err) => console.error(err.message),
@@ -85,7 +87,7 @@ export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRou
 
 export const trpcClient = createTRPCClient<AppRouter>({
   links: [
-    loggerLink({ enabled: () => true }),
+    // loggerLink({ enabled: () => true }),
     httpBatchLink({
       transformer: superjson,
       url: getUrl(),
@@ -95,7 +97,10 @@ export const trpcClient = createTRPCClient<AppRouter>({
         fetch(url, { ...options, credentials: 'include' }).then((res) => {
           const currentPath = new URL(window.location.href).pathname;
           const redirectPath = res.headers.get('X-Zero-Redirect');
-          if (!!redirectPath && redirectPath !== currentPath) window.location.href = redirectPath;
+          if (!!redirectPath && redirectPath !== currentPath) {
+            window.location.href = redirectPath;
+            res.headers.delete('X-Zero-Redirect');
+          }
           return res;
         }),
     }),
@@ -103,7 +108,6 @@ export const trpcClient = createTRPCClient<AppRouter>({
 });
 
 type TrpcHook = ReturnType<typeof useTRPC>;
-
 export function QueryProvider({
   children,
   connectionId,
@@ -120,7 +124,7 @@ export function QueryProvider({
       persistOptions={{
         persister,
         buster: CACHE_BURST_KEY,
-        maxAge: 1000 * 60 * 60 * 24 * 3, // 3 days
+        maxAge: 1000 * 60 * 60 * 24, // 24 hours
       }}
       onSuccess={() => {
         const threadQueryKey = [['mail', 'listThreads'], { type: 'infinite' }];

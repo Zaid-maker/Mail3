@@ -72,6 +72,21 @@ export function useOptimisticThreadState(threadId: string) {
           states.isImportant = true;
           states.optimisticImportant = action.important;
           break;
+
+        case 'SNOOZE':
+          states.shouldHide = true;
+          states.optimisticDestination = 'snoozed';
+          break;
+
+        case 'UNSNOOZE':
+          states.shouldHide = true;
+          states.optimisticDestination = 'inbox';
+          break;
+
+        case 'DELETE_DRAFT':
+          states.shouldHide = true;
+          states.isRemoving = true;
+          break;
       }
     });
 

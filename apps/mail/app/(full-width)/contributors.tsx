@@ -7,7 +7,6 @@ import {
   ChartAreaIcon,
   GitPullRequest,
   LayoutGrid,
-  FileCode,
 } from 'lucide-react';
 import {
   Area,
@@ -52,13 +51,13 @@ interface ActivityData {
   pullRequests: number;
 }
 
-const excludedUsernames = [
+const excludedUsernames = new Set([
   'bot1',
   'dependabot',
   'github-actions',
   'zerodotemail',
   'autofix-ci[bot]',
-];
+]);
 const coreTeamMembers = [
   'nizzyabi',
   'ahmetskilinc',
@@ -142,7 +141,7 @@ export default function OpenPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allContributors, setAllContributors] = useState<Contributor[]>([]);
-  const [isRendered, setIsRendered] = useState(false);
+  const [, setIsRendered] = useState(false);
 
   useEffect(() => setIsRendered(true), []);
 
@@ -199,7 +198,7 @@ export default function OpenPage() {
     return allContributors
       ?.filter(
         (contributor) =>
-          !excludedUsernames.includes(contributor.login) &&
+          !excludedUsernames.has(contributor.login) &&
           coreTeamMembers.some(
             (member) => member.toLowerCase() === contributor.login.toLowerCase(),
           ),
@@ -216,7 +215,7 @@ export default function OpenPage() {
       allContributors
         ?.filter(
           (contributor) =>
-            !excludedUsernames.includes(contributor.login) &&
+            !excludedUsernames.has(contributor.login) &&
             !coreTeamMembers.some(
               (member) => member.toLowerCase() === contributor.login.toLowerCase(),
             ),
@@ -381,7 +380,7 @@ export default function OpenPage() {
         </div>
 
         {/* Project Stats */}
-        <div className="mb-8 overflow-hidden rounded-xl border bg-gradient-to-b from-white/50 to-white/10 p-6 backdrop-blur-sm dark:border-neutral-700 dark:from-neutral-900/50 dark:to-neutral-900/30">
+        <div className="bg-linear-to-b mb-8 overflow-hidden rounded-xl border from-white/50 to-white/10 p-6 backdrop-blur-sm dark:border-neutral-700 dark:from-neutral-900/50 dark:to-neutral-900/30">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -485,7 +484,7 @@ export default function OpenPage() {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {/* Repository Growth */}
-            <Card className="col-span-full border-neutral-100 bg-white/50 p-4 transition-all hover:bg-white/60 lg:col-span-2 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900/60">
+            <Card className="col-span-full border-neutral-100 bg-white/50 p-4 hover:bg-white/60 lg:col-span-2 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900/60">
               <h3 className="mb-4 text-sm font-medium text-neutral-600 dark:text-neutral-400">
                 Repository Growth
               </h3>
@@ -577,7 +576,7 @@ export default function OpenPage() {
             </Card>
 
             {/* Activity Chart */}
-            <Card className="col-span-full border-neutral-200 bg-white/50 p-4 transition-all hover:bg-white/60 lg:col-span-1 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900/60">
+            <Card className="col-span-full border-neutral-200 bg-white/50 p-4 hover:bg-white/60 lg:col-span-1 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900/60">
               <h3 className="mb-4 text-sm font-medium text-neutral-600 dark:text-neutral-400">
                 Recent Activity
               </h3>
@@ -673,7 +672,7 @@ export default function OpenPage() {
             {filteredCoreTeam?.map((member, index) => (
               <div
                 key={member.login}
-                className="group relative flex items-center gap-4 rounded-xl border bg-white/50 p-4 transition-all hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900 dark:hover:shadow-neutral-900/50"
+                className="group relative flex items-center gap-4 rounded-xl border bg-white/50 p-4 hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900 dark:hover:shadow-neutral-900/50"
                 style={{
                   animationDelay: `${index * 100}ms`,
                   animation: 'fadeInUp 0.5s ease-out forwards',
@@ -784,7 +783,7 @@ export default function OpenPage() {
                       key={contributor.login}
                       href={contributor.html_url}
                       target="_blank"
-                      className="group relative flex flex-col items-center rounded-xl border bg-white/50 p-4 transition-all hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900 dark:hover:shadow-neutral-900/50"
+                      className="group relative flex flex-col items-center rounded-xl border bg-white/50 p-4 hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900 dark:hover:shadow-neutral-900/50"
                       style={{
                         animationDelay: `${index * 50}ms`,
                         animation: 'fadeInUp 0.5s ease-out forwards',
@@ -909,7 +908,7 @@ export default function OpenPage() {
         </div>
 
         <div className="mb-8">
-          <div className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-neutral-50 to-white shadow-sm dark:border-neutral-800 dark:from-neutral-900/80 dark:to-neutral-900/30">
+          <div className="bg-linear-to-br relative overflow-hidden rounded-xl border from-neutral-50 to-white shadow-sm dark:border-neutral-800 dark:from-neutral-900/80 dark:to-neutral-900/30">
             <div className="absolute inset-0 opacity-20 dark:opacity-20"></div>
 
             <div className="relative p-6">
@@ -929,7 +928,7 @@ export default function OpenPage() {
                   <div className="mt-5 flex flex-wrap gap-3">
                     <Button
                       asChild
-                      className="relative overflow-hidden bg-neutral-900 text-white transition-all hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+                      className="relative overflow-hidden bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
                     >
                       <a
                         href={`https://github.com/${REPOSITORY}/blob/main/.github/CONTRIBUTING.md`}
@@ -1011,6 +1010,7 @@ export default function OpenPage() {
           <a
             href="https://discord.gg/mail0"
             target="_blank"
+            rel="noreferrer"
             className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
             aria-label="Join our Discord"
           >
@@ -1019,6 +1019,7 @@ export default function OpenPage() {
           <a
             href="https://x.com/mail0dotcom"
             target="_blank"
+            rel="noreferrer"
             className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
             aria-label="Follow us on X (Twitter)"
           >

@@ -10,7 +10,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SettingsCard } from '@/components/settings/settings-card';
 import { AddConnectionDialog } from '@/components/connection/add';
-import { PricingDialog } from '@/components/ui/pricing-dialog';
+
 import { useSession, authClient } from '@/lib/auth-client';
 import { useConnections } from '@/hooks/use-connections';
 import { useTRPC } from '@/providers/query-provider';
@@ -62,9 +62,9 @@ export default function ConnectionsPage() {
         <div className="space-y-6">
           {isLoading ? (
             <div className="grid gap-4 md:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
+              {[...Array(3)].map((n) => (
                 <div
-                  key={i}
+                  key={n}
                   className="bg-popover flex items-center justify-between rounded-lg border p-4"
                 >
                   <div className="flex min-w-0 items-center gap-4">
@@ -165,6 +165,7 @@ export default function ConnectionsPage() {
                             variant="ghost"
                             size="icon"
                             className="text-muted-foreground hover:text-primary ml-4 shrink-0"
+                            disabled={data.connections.length === 1}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>
@@ -204,7 +205,7 @@ export default function ConnectionsPage() {
               <AddConnectionDialog>
                 <Button
                   variant="outline"
-                  className="group relative w-9 overflow-hidden transition-all duration-200 hover:w-full sm:hover:w-[32.5%]"
+                  className="group relative w-9 overflow-hidden duration-200 hover:w-full sm:hover:w-[32.5%]"
                 >
                   <Plus className="absolute left-2 h-4 w-4" />
                   <span className="whitespace-nowrap pl-7 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
@@ -216,7 +217,7 @@ export default function ConnectionsPage() {
               <Button
                 onClick={() => setPricingDialog('true')}
                 variant="outline"
-                className="group relative w-9 overflow-hidden transition-all duration-200 hover:w-full sm:hover:w-[32.5%]"
+                className="group relative w-9 overflow-hidden duration-200 hover:w-full sm:hover:w-[32.5%]"
               >
                 <Plus className="absolute left-2 h-4 w-4" />
                 <span className="whitespace-nowrap pl-7 opacity-0 transition-opacity duration-200 group-hover:opacity-100">

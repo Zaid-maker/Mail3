@@ -165,8 +165,13 @@
       "attachments": "Anexos",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "anexos",
             "countPlural=one": "anexo",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "arquivos",
             "countPlural=one": "arquivo",
@@ -249,8 +259,13 @@
       "search": "Pesquisar notas...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Adicione notas",
             "countPlural=one": "# nota",
@@ -312,12 +327,17 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "arquivos",
-            "countPlural=one": "arquivo",
-            "countPlural=other": "arquivos"
+            "countPlural=one": "# resposta",
+            "countPlural=other": "# respostas"
           }
         }
       ],
@@ -370,7 +390,8 @@
       "failedToMute": "Falha ao silenciar",
       "failedToUnmute": "Falha ao ativar som",
       "archived": "Arquivado",
-      "failedToArchive": "Falha ao arquivar"
+      "failedToArchive": "Falha ao arquivar",
+      "openInNewTab": "Abrir em nova aba"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "Suporte ao vivo",
       "feedback": "Feedback",
       "settings": "Configurações",
-      "voice": "Assistente de voz"
+      "voice": "Assistente de voz",
+      "snoozed": "Adiados"
     },
     "settings": {
       "general": "Geral",
@@ -414,7 +436,7 @@
       "signatures": "Assinaturas",
       "shortcuts": "Atalhos",
       "labels": "Etiquetas",
-      "categories": "Categorias",
+      "categories": "Visualizações",
       "dangerZone": "Zona de perigo",
       "deleteAccount": "Excluir conta",
       "privacy": "Privacidade"
@@ -446,11 +468,15 @@
         "noResultsFound": "Nenhum resultado encontrado",
         "zeroSignature": "Assinatura Zero",
         "zeroSignatureDescription": "Adicionar uma assinatura Zero aos seus e-mails.",
+        "undoSendEnabled": "Desfazer envio",
+        "undoSendEnabledDescription": "Permitir cancelar emails dentro de 30 segundos após o envio.",
         "defaultEmailAlias": "Alias de Email Padrão",
         "selectDefaultEmail": "Selecionar email padrão",
         "defaultEmailDescription": "Este email será usado como endereço 'De' padrão ao compor novos emails",
         "autoRead": "Leitura automática",
-        "autoReadDescription": "Marcar automaticamente os emails como lidos quando você clicar neles."
+        "autoReadDescription": "Marcar automaticamente os emails como lidos quando você clicar neles.",
+        "animations": "Animações",
+        "animationsDescription": "Ativar animações suaves ao alternar entre e-mails"
       },
       "connections": {
         "title": "Conexões de E-mail",

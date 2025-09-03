@@ -535,7 +535,7 @@ export class OutlookMailManager implements MailManager {
     return this.withErrorHandler(
       'sendDraft',
       async () => {
-        await this.graphClient.api(`/me/drafts/${draftId}/send`).post({});
+        await this.graphClient.api(`/me/messages/${draftId}/send`).post({});
       },
       { draftId, data },
     );
@@ -559,6 +559,15 @@ export class OutlookMailManager implements MailManager {
         }
 
         return parsedDraft;
+      },
+      { draftId },
+    );
+  }
+  public deleteDraft(draftId: string) {
+    return this.withErrorHandler(
+      'deleteDraft',
+      async () => {
+        await this.graphClient.api(`/me/messages/${draftId}`).delete();
       },
       { draftId },
     );
@@ -932,20 +941,6 @@ export class OutlookMailManager implements MailManager {
       return false;
     }
   }
-  private async modifyThreadLabels(
-    threadIds: string[],
-    requestBody: unknown, // Gmail-specific type, replace with relevant Outlook logic
-  ) {
-    // This method is Gmail-specific (modifying thread labels).
-    // The equivalent in Outlook is modifying messages (read status, categories)
-    // or moving messages between folders.
-    // The logic from modifyMessageReadStatus and modifyMessageLabelsOrFolders is more relevant.
-    console.warn(
-      'modifyThreadLabels is a Gmail-specific concept. Use modifyMessageReadStatus or modifyMessageLabelsOrFolders.',
-    );
-    // Placeholder
-    return Promise.resolve();
-  }
 
   public deleteAllSpam() {
     console.warn('deleteAllSpam is not implemented for Microsoft');
@@ -1008,12 +1003,9 @@ export class OutlookMailManager implements MailManager {
     toRecipients,
     ccRecipients,
     bccRecipients,
-    sentDateTime,
     receivedDateTime,
     internetMessageId,
-    inferenceClassification, // Might indicate if junk
     categories, // Outlook categories map to tags
-    parentFolderId, // Can indicate folder (e.g. 'deleteditems')
     // headers, // Array of Header objects (name, value), doesn't exist in Outlook
   }: Message): Omit<
     ParsedMessage,
@@ -1056,11 +1048,11 @@ export class OutlookMailManager implements MailManager {
         },
       })) || [];
 
-    let references: string | undefined;
-    let inReplyTo: string | undefined;
-    let listUnsubscribe: string | undefined;
-    let listUnsubscribePost: string | undefined;
-    let replyTo: string | undefined;
+    const references: string | undefined = undefined;
+    const inReplyTo: string | undefined = undefined;
+    const listUnsubscribe: string | undefined = undefined;
+    const listUnsubscribePost: string | undefined = undefined;
+    const replyTo: string | undefined = undefined;
 
     // TODO: use headers if available
     // if (headers) {
@@ -1119,7 +1111,6 @@ export class OutlookMailManager implements MailManager {
     headers,
     cc,
     bcc,
-    fromEmail, // In Outlook, this is usually determined by the authenticated user unless using "send on behalf of" or "send as"
   }: IOutgoingMessage): Promise<Message> {
     // Outlook Graph API expects a Message object structure for sending/creating drafts
     console.log(to);
@@ -1296,5 +1287,8 @@ export class OutlookMailManager implements MailManager {
       if (isFatal) void deleteActiveConnection();
       throw new StandardizedError(error, operation, context);
     }
+  }
+  listHistory<T>(historyId: string): Promise<{ history: T[]; historyId: string }> {
+    return Promise.resolve({ history: [], historyId });
   }
 }

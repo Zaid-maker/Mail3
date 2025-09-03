@@ -1,13 +1,9 @@
-'use client';
-
-import { Mic, MicOff, Volume2, VolumeX, X, Loader2, WavesIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { AnimatePresence, motion } from 'motion/react';
+import { Mic, MicOff, Loader2, WavesIcon } from 'lucide-react';
 import { useVoice } from '@/providers/voice-provider';
-import { Button } from '@/components/ui/button';
+import { motion } from 'motion/react';
+
 import { useSession } from '@/lib/auth-client';
 import { useQueryState } from 'nuqs';
-import { cn } from '@/lib/utils';
 
 export function VoiceButton() {
   const { data: session } = useSession();
@@ -33,7 +29,7 @@ export function VoiceButton() {
   if (!isConnected) {
     return (
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-        <button type="button" onClick={handleStartConversation}>
+        <button type="button" onClick={handleStartConversation} className="cursor-pointer">
           <div className="dark:bg[#141414] flex h-7 items-center justify-center rounded-sm bg-[#262626] px-2">
             <Mic className="h-4 w-4 text-white dark:text-[#929292]" />
           </div>
@@ -44,7 +40,7 @@ export function VoiceButton() {
 
   return (
     isConnected && (
-      <button type="button" onClick={endConversation}>
+      <button type="button" onClick={endConversation} className="cursor-pointer">
         <div className="dark:bg[#141414] flex h-7 items-center justify-center rounded-sm bg-[#262626] px-2">
           {isInitializing && (
             <div className="flex items-center justify-center gap-2">

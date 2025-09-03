@@ -4,21 +4,22 @@ import { useActiveConnection } from '@/hooks/use-connections';
 import { ResizablePanel } from '@/components/ui/resizable';
 import { useSearchValue } from '@/hooks/use-search-value';
 import { useState, useEffect, useCallback } from 'react';
+import useSearchLabels from '@/hooks/use-labels-search';
 import { useQueryClient } from '@tanstack/react-query';
 import { AIChat } from '@/components/create/ai-chat';
 import { useTRPC } from '@/providers/query-provider';
 import { Tools } from '../../../server/src/types';
+import { useDoState } from '../mail/use-do-state';
 import { useBilling } from '@/hooks/use-billing';
 import { PromptsDialog } from './prompts-dialog';
 import { Button } from '@/components/ui/button';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useLabels } from '@/hooks/use-labels';
-import { useSession } from '@/lib/auth-client';
 import { useAgentChat } from 'agents/ai-react';
 import { X, Expand, Plus } from 'lucide-react';
+import { IncomingMessageType } from '../party';
 import { Gauge } from '@/components/ui/gauge';
 import { useParams } from 'react-router';
-import { useChat } from '@ai-sdk/react';
 import { useAgent } from 'agents/react';
 import { useQueryState } from 'nuqs';
 import { cn } from '@/lib/utils';
@@ -85,7 +86,7 @@ function ChatHeader({
                   <Button
                     onClick={onToggleFullScreen}
                     variant="ghost"
-                    className="hidden md:flex md:h-fit md:px-2 [&>svg]:size-2"
+                    className="hidden md:flex md:h-fit md:px-2"
                   >
                     <Expand className="dark:text-iconDark text-iconLight" />
                     <span className="sr-only">Toggle view mode</span>
@@ -279,9 +280,9 @@ export function useAISidebar() {
 
   // Update query parameter and localStorage when viewMode changes
   const setViewMode = useCallback(
-    async (mode: ViewMode) => {
+    (mode: ViewMode) => {
       setViewModeState(mode);
-      await setViewModeQuery(mode === 'popup' ? null : mode);
+      setViewModeQuery(mode === 'popup' ? null : mode);
 
       // Save to localStorage for persistence across sessions
       if (typeof window !== 'undefined') {
@@ -334,17 +335,8 @@ export function useAISidebar() {
 }
 
 function AISidebar({ className }: AISidebarProps) {
-  const {
-    open,
-    setOpen,
-    viewMode,
-    setViewMode,
-    isFullScreen,
-    setIsFullScreen,
-    toggleViewMode,
-    isSidebar,
-    isPopup,
-  } = useAISidebar();
+  const { open, setOpen, isFullScreen, setIsFullScreen, toggleViewMode, isSidebar, isPopup } =
+    useAISidebar();
   const { isPro, track, refetch: refetchBilling } = useBilling();
   const queryClient = useQueryClient();
   const trpc = useTRPC();
@@ -353,16 +345,57 @@ function AISidebar({ className }: AISidebarProps) {
   const { refetch: refetchLabels } = useLabels();
   const [searchValue] = useSearchValue();
   const { data: activeConnection } = useActiveConnection();
+  const [, setDoState] = useDoState();
+  const { labels } = useSearchLabels();
+
+  const onMessage = useCallback(
+    (message: any) => {
+      try {
+        const parsedData = JSON.parse(message.data);
+        const { type } = parsedData;
+        if (type === IncomingMessageType.Mail_Get) {
+          const { threadId } = parsedData;
+          queryClient.invalidateQueries({
+            queryKey: trpc.mail.get.queryKey({ id: threadId }),
+          });
+        } else if (type === IncomingMessageType.Mail_List) {
+          const { folder } = parsedData;
+          queryClient.invalidateQueries({
+            queryKey: trpc.mail.listThreads.infiniteQueryKey({
+              folder,
+              labelIds: labels,
+              q: searchValue.value,
+            }),
+          });
+        } else if (type === IncomingMessageType.User_Topics) {
+          queryClient.invalidateQueries({
+            queryKey: trpc.labels.list.queryKey(),
+          });
+        } else if (type === IncomingMessageType.Do_State) {
+          const { isSyncing, syncingFolders, storageSize, counts, shards } = parsedData;
+          setDoState({ isSyncing, syncingFolders, storageSize, counts: counts ?? [], shards });
+        }
+      } catch (error) {
+        console.error('error parsing party message', error, { rawMessage: message.data });
+      }
+    },
+    [queryClient, trpc, labels, searchValue.value, setDoState],
+  );
 
   const agent = useAgent({
     agent: 'ZeroAgent',
     name: activeConnection?.id ? String(activeConnection.id) : 'general',
     host: `${import.meta.env.VITE_PUBLIC_BACKEND_URL}`,
+    onError: (e) => console.log(e),
+    onMessage,
   });
 
   const chatState = useAgentChat({
+    getInitialMessages: async () => {
+      return [];
+    },
     agent,
-    maxSteps: 5,
+    maxSteps: 10,
     body: {
       threadId: threadId ?? undefined,
       currentFolder: folder ?? undefined,
@@ -445,7 +478,7 @@ function AISidebar({ className }: AISidebarProps) {
           {/* Desktop view - visible on md and larger screens */}
           {isSidebar && !isFullScreen && (
             <>
-              <div className="w-[1px] opacity-0" />
+              <div className="w-px opacity-0" />
               <ResizablePanel
                 defaultSize={24}
                 minSize={24}
@@ -479,10 +512,10 @@ function AISidebar({ className }: AISidebarProps) {
           <div
             tabIndex={0}
             className={cn(
-              'fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 opacity-40 backdrop-blur-sm transition-opacity duration-150 hover:opacity-100 sm:inset-auto sm:bottom-4 sm:right-4 sm:flex-col sm:items-end sm:justify-end sm:p-0',
+              'fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 backdrop-blur-sm transition-opacity duration-150 sm:inset-auto sm:bottom-4 sm:right-4 sm:flex-col sm:items-end sm:justify-end sm:p-0 lg:opacity-40 lg:hover:opacity-100',
               'md:hidden',
               isPopup && !isFullScreen && 'md:flex',
-              isFullScreen && '!inset-0 !flex !p-0 !opacity-100 !backdrop-blur-none',
+              isFullScreen && 'inset-0! flex! p-0! opacity-100! backdrop-blur-none!',
               'rounded-2xl focus:opacity-100',
             )}
           >
@@ -491,7 +524,7 @@ function AISidebar({ className }: AISidebarProps) {
                 'bg-panelLight dark:bg-panelDark w-full overflow-hidden rounded-2xl border border-[#E7E7E7] shadow-lg dark:border-[#252525]',
                 'md:hidden',
                 isPopup && !isFullScreen && 'w-[600px] max-w-[90vw] sm:w-[400px] md:block',
-                isFullScreen && '!block !max-w-none !rounded-none !border-none',
+                isFullScreen && 'block! max-w-none! rounded-none! border-none!',
               )}
             >
               <div

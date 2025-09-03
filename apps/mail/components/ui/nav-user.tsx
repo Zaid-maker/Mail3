@@ -1,14 +1,14 @@
 import {
   HelpCircle,
-  LogIn,
   LogOut,
   MoonIcon,
   Settings,
   Plus,
-  BrainIcon,
   CopyCheckIcon,
   BadgeCheck,
   BanknoteIcon,
+  RefreshCcw,
+  Trash2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,22 +20,19 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useActiveConnection, useConnections } from '@/hooks/use-connections';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useLocation, useRevalidator, useSearchParams } from 'react-router';
-import { CircleCheck, Danger, OldPhone, ThreeDots } from '../icons/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Popover, PopoverContent, PopoverTrigger } from './popover';
-import { CallInboxDialog, SetupInboxDialog } from '../setup-phone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDoState } from '@/components/mail/use-do-state';
 import { useLoading } from '../context/loading-context';
 import { signOut, useSession } from '@/lib/auth-client';
 import { AddConnectionDialog } from '../connection/add';
+import { CircleCheck, ThreeDots } from '../icons/icons';
 import { useTRPC } from '@/providers/query-provider';
 import { useSidebar } from '@/components/ui/sidebar';
-import { useBrainState } from '@/hooks/use-summary';
-import { useThreads } from '@/hooks/use-threads';
 import { useBilling } from '@/hooks/use-billing';
 import { SunIcon } from '../icons/animated/sun';
 import { clear as idbClear } from 'idb-keyval';
+import { useLocation } from 'react-router';
 import { m } from '@/paraglide/messages';
 import { useTheme } from 'next-themes';
 import { useQueryState } from 'nuqs';
@@ -43,25 +40,73 @@ import { Button } from './button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+const bytesToMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2);
+
+interface SyncingStatusIndicatorProps {
+  isSyncing: boolean;
+  storageSize: number;
+  syncingFolders: string[];
+}
+
+function SyncingStatusIndicator({
+  isSyncing,
+  storageSize,
+  syncingFolders,
+}: SyncingStatusIndicatorProps) {
+  const statusContent = (
+    <div className="flex items-center gap-2">
+      <div className="flex h-4 w-4 items-center justify-center">
+        <div
+          className={cn(
+            'h-2 w-2 rounded-full',
+            isSyncing || storageSize === 0 ? 'animate-pulse bg-orange-500' : 'bg-green-500',
+          )}
+        />
+      </div>
+      <p className="text-[13px] opacity-60">
+        {isSyncing || storageSize === 0
+          ? 'Syncing emails...'
+          : `Synced${storageSize ? ` • ${bytesToMB(storageSize)} MB` : ''}`}
+      </p>
+    </div>
+  );
+
+  if (isSyncing && syncingFolders.length > 0) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuItem className="cursor-default">{statusContent}</DropdownMenuItem>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={10} avoidCollisions={false}>
+          <p className="text-xs">Syncing: {syncingFolders.join(', ')}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return <DropdownMenuItem className="cursor-default">{statusContent}</DropdownMenuItem>;
+}
+
 export function NavUser() {
-  const { data: session, refetch: refetchSession, isPending: isSessionPending } = useSession();
-  const { data, refetch: refetchConnections } = useConnections();
+  const { data: session } = useSession();
+  const { data } = useConnections();
   const [isRendered, setIsRendered] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const { state } = useSidebar();
   const trpc = useTRPC();
   const [, setThreadId] = useQueryState('threadId');
   const { mutateAsync: setDefaultConnection } = useMutation(
     trpc.connections.setDefault.mutationOptions(),
   );
+  const { mutateAsync: handleForceSync } = useMutation(trpc.mail.forceSync.mutationOptions());
   const { openBillingPortal, customer: billingCustomer, isPro } = useBilling();
   const pathname = useLocation().pathname;
-  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: activeConnection, refetch: refetchActiveConnection } = useActiveConnection();
   const [, setPricingDialog] = useQueryState('pricingDialog');
   const [category] = useQueryState('category', { defaultValue: 'All Mail' });
   const { setLoading } = useLoading();
+  const [{ isSyncing, syncingFolders, storageSize, shards }] = useDoState();
 
   const getSettingsHref = useCallback(() => {
     const currentPath = category
@@ -90,52 +135,10 @@ export function NavUser() {
 
     try {
       setLoading(true, m['common.navUser.switchingAccounts']());
-
       setThreadId(null);
-
       await setDefaultConnection({ connectionId });
-
-      const targetConnection = data?.connections?.find((conn: any) => conn.id === connectionId);
-      if (targetConnection) {
-        queryClient.setQueryData(trpc.connections.getDefault.queryKey(), targetConnection);
-      }
-
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: trpc.connections.getDefault.queryKey(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: trpc.connections.list.queryKey(),
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['mail']],
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['labels']],
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['stats']],
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['notes']],
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['brain']],
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['settings']],
-        }),
-
-        queryClient.removeQueries({
-          queryKey: [['drafts']],
-        }),
-      ]);
+      queryClient.clear();
+      await queryClient.refetchQueries({ queryKey: trpc.mail.listThreads.infiniteQueryKey() });
     } catch (error) {
       console.error('Error switching accounts:', error);
       toast.error(m['common.navUser.failedToSwitchAccount']());
@@ -187,9 +190,9 @@ export function NavUser() {
                       />
 
                       <AvatarFallback className="rounded-[5px] text-[10px]">
-                        {(activeAccount?.name || activeAccount?.email)
+                        {(activeAccount?.name || activeAccount?.email || '')
                           .split(' ')
-                          .map((n) => n[0])
+                          .map((n: string) => n[0])
                           .join('')
                           .toUpperCase()
                           .slice(0, 2)}
@@ -199,7 +202,7 @@ export function NavUser() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="ml-3 w-[--radix-dropdown-menu-trigger-width] min-w-56 bg-white font-medium dark:bg-[#131313]"
+                className="w-(--radix-dropdown-menu-trigger-width) ml-3 min-w-56 bg-white font-medium dark:bg-[#131313]"
                 align="end"
                 side={'bottom'}
                 sideOffset={8}
@@ -288,16 +291,6 @@ export function NavUser() {
 
                     <DropdownMenuSeparator className="my-1" />
 
-                    <DropdownMenuItem onClick={handleThemeToggle} className="cursor-pointer">
-                      <div className="flex w-full items-center gap-2">
-                        {theme === 'dark' ? (
-                          <MoonIcon className="size-4 opacity-60" />
-                        ) : (
-                          <SunIcon className="size-4 opacity-60" />
-                        )}
-                        <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
-                      </div>
-                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a href={getSettingsHref()} className="cursor-pointer">
                         <div className="flex items-center gap-2">
@@ -306,25 +299,71 @@ export function NavUser() {
                         </div>
                       </a>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <a href="https://discord.gg/mail0" target="_blank" className="w-full">
-                        <div className="flex items-center gap-2">
-                          <HelpCircle size={16} className="opacity-60" />
-                          <p className="text-[13px] opacity-60">
-                            {m['common.navUser.customerSupport']()}
-                          </p>
-                        </div>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
-                      <div className="flex items-center gap-2">
-                        <LogOut size={16} className="opacity-60" />
-                        <p className="text-[13px] opacity-60">{m['common.actions.logout']()}</p>
-                      </div>
-                    </DropdownMenuItem>
                   </>
                 </div>
                 <>
+                  <DropdownMenuSeparator className="mt-1" />
+                  <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">Debug</p>
+                  <DropdownMenuItem onClick={handleCopyConnectionId}>
+                    <div className="flex items-center gap-2">
+                      <CopyCheckIcon size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">Copy Connection ID</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleClearCache}>
+                    <div className="flex items-center gap-2">
+                      <Trash2 size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">Clear Local Cache</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleForceSync()}>
+                    <div className="flex items-center gap-2">
+                      <RefreshCcw size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">Force re-sync</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <SyncingStatusIndicator
+                    isSyncing={isSyncing}
+                    storageSize={storageSize}
+                    syncingFolders={syncingFolders}
+                  />
+                  <DropdownMenuItem>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] opacity-60">Shards: {shards}</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="mt-1" />
+                  <DropdownMenuItem onSelect={() => handleThemeToggle()} className="cursor-pointer">
+                    <div className="flex w-full items-center gap-2">
+                    {resolvedTheme === 'dark' ? (
+                        <MoonIcon className="size-4 opacity-60" />
+                      ) : (
+                        <SunIcon className="size-4 opacity-60" />
+                      )}
+                      <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a
+                      href="https://discord.gg/mail0"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <div className="flex items-center gap-2">
+                        <HelpCircle size={16} className="opacity-60" />
+                        <p className="text-[13px] opacity-60">
+                          {m['common.navUser.customerSupport']()}
+                        </p>
+                      </div>
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onSelect={() => handleLogout()}>
+                    <div className="flex items-center gap-2">
+                      <LogOut size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">{m['common.actions.logout']()}</p>
+                    </div>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="mt-1" />
                   <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
                     <a href="/privacy" className="hover:underline">
@@ -353,7 +392,7 @@ export function NavUser() {
                   }`}
                 >
                   <div className="relative">
-                    <Avatar className="size-6 rounded-[5px]">
+                    <Avatar className="size-7 rounded-[5px]">
                       <AvatarImage
                         className="rounded-[5px]"
                         src={activeAccount.picture || undefined}
@@ -471,15 +510,15 @@ export function NavUser() {
 
               {isPro ? (
                 <AddConnectionDialog>
-                  <button className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-[5px] border border-dashed dark:bg-[#262626] dark:text-[#929292]">
+                  <Button className="hover:bg-offsetLight/80 dark:hover:bg-offsetDark/80 flex h-7 w-7 cursor-pointer items-center justify-center rounded-[5px] border border-dashed bg-transparent px-0 text-black dark:bg-[#262626] dark:text-[#929292]">
                     <Plus className="size-4" />
-                  </button>
+                  </Button>
                 </AddConnectionDialog>
               ) : (
                 <>
                   <Button
                     onClick={() => setPricingDialog('true')}
-                    className="hover:bg-offsetLight/80 flex h-7 w-7 cursor-pointer items-center justify-center rounded-[5px] border border-dashed bg-transparent px-0 text-black dark:bg-[#262626] dark:text-[#929292]"
+                    className="hover:bg-offsetLight/80 dark:hover:bg-offsetDark/80 flex h-7 w-7 cursor-pointer items-center justify-center rounded-[5px] border border-dashed bg-transparent px-0 text-black dark:bg-[#262626] dark:text-[#929292]"
                   >
                     <Plus className="size-4" />
                   </Button>
@@ -514,34 +553,68 @@ export function NavUser() {
                         </div>
                       </DropdownMenuItem>
                     ) : null}
-                    <DropdownMenuItem onClick={handleThemeToggle} className="cursor-pointer">
-                      <div className="flex w-full items-center gap-2">
-                        {theme === 'dark' ? (
-                          <MoonIcon className="size-4 opacity-60" />
-                        ) : (
-                          <SunIcon className="size-4 opacity-60" />
-                        )}
-                        <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <a href="https://discord.gg/mail0" target="_blank" className="w-full">
-                        <div className="flex items-center gap-2">
-                          <HelpCircle size={16} className="opacity-60" />
-                          <p className="text-[13px] opacity-60">
-                            {m['common.navUser.customerSupport']()}
-                          </p>
-                        </div>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
-                      <div className="flex items-center gap-2">
-                        <LogOut size={16} className="opacity-60" />
-                        <p className="text-[13px] opacity-60">{m['common.actions.logout']()}</p>
-                      </div>
-                    </DropdownMenuItem>
                   </div>
-
+                  <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">Debug</p>
+                  <DropdownMenuItem onClick={handleCopyConnectionId}>
+                    <div className="flex items-center gap-2">
+                      <CopyCheckIcon size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">Copy Connection ID</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleClearCache}>
+                    <div className="flex items-center gap-2">
+                      <Trash2 size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">Clear Local Cache</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleForceSync()}>
+                    <div className="flex items-center gap-2">
+                      <RefreshCcw size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">Force re-sync</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <SyncingStatusIndicator
+                    isSyncing={isSyncing}
+                    storageSize={storageSize}
+                    syncingFolders={syncingFolders}
+                  />
+                  <DropdownMenuItem>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] opacity-60">Shards: {shards}</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="mt-1" />
+                  <DropdownMenuItem onClick={handleThemeToggle} className="cursor-pointer">
+                    <div className="flex w-full items-center gap-2">
+                      {theme === 'dark' ? (
+                        <MoonIcon className="size-4 opacity-60" />
+                      ) : (
+                        <SunIcon className="size-4 opacity-60" />
+                      )}
+                      <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <a
+                      href="https://discord.gg/mail0"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full"
+                    >
+                      <div className="flex items-center gap-2">
+                        <HelpCircle size={16} className="opacity-60" />
+                        <p className="text-[13px] opacity-60">
+                          {m['common.navUser.customerSupport']()}
+                        </p>
+                      </div>
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                    <div className="flex items-center gap-2">
+                      <LogOut size={16} className="opacity-60" />
+                      <p className="text-[13px] opacity-60">{m['common.actions.logout']()}</p>
+                    </div>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="mt-1" />
                   <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
                     <a href="/privacy" className="hover:underline">
@@ -552,20 +625,6 @@ export function NavUser() {
                       Terms
                     </a>
                   </div>
-                  <DropdownMenuSeparator className="mt-1" />
-                  <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">Debug</p>
-                  <DropdownMenuItem onClick={handleCopyConnectionId}>
-                    <div className="flex items-center gap-2">
-                      <CopyCheckIcon size={16} className="opacity-60" />
-                      <p className="text-[13px] opacity-60">Copy Connection ID</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleClearCache}>
-                    <div className="flex items-center gap-2">
-                      <HelpCircle size={16} className="opacity-60" />
-                      <p className="text-[13px] opacity-60">Clear Local Cache</p>
-                    </div>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -597,42 +656,8 @@ export function NavUser() {
               </button>
             )}
           </div>
-
-          <div className="ml-2">{/* Gauge component removed */}</div>
         </div>
       )}
-
-      <div className="space-y-1">
-        {/* <div>
-          <div className="text-muted-foreground flex justify-between text-[10px] uppercase tracking-widest">
-            <span>AI Chats</span>
-            {chatMessages.unlimited ? (
-              <span>Unlimited</span>
-            ) : (
-              <span>
-                {chatMessages.remaining}/{chatMessages.total}
-              </span>
-            )}
-          </div>
-          <Progress className="h-1" value={(chatMessages.remaining! / chatMessages.total) * 100} />
-        </div> */}
-        {/* <div>
-          <div className="text-muted-foreground flex justify-between text-[10px] uppercase tracking-widest">
-            <span>AI Labels</span>
-            {brainActivity.unlimited ? (
-              <span>Unlimited</span>
-            ) : (
-              <span>
-                {brainActivity.remaining}/{brainActivity.total}
-              </span>
-            )}
-          </div>
-          <Progress
-            className="h-1"
-            value={(brainActivity.remaining! / brainActivity.total) * 100}
-          />
-        </div> */}
-      </div>
     </div>
   );
 }

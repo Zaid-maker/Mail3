@@ -1,8 +1,9 @@
-import { format, isToday, isThisMonth, differenceInCalendarMonths } from 'date-fns';
+import { isToday, isThisMonth, differenceInCalendarMonths } from 'date-fns';
 import { getBrowserTimezone } from './timezones';
 import { formatInTimeZone } from 'date-fns-tz';
 import { MAX_URL_LENGTH } from './constants';
 import { clsx, type ClassValue } from 'clsx';
+import type { Customer } from 'autumn-js';
 import { twMerge } from 'tailwind-merge';
 import type { Sender } from '@/types';
 import LZString from 'lz-string';
@@ -14,6 +15,7 @@ export const FOLDERS = {
   BIN: 'bin',
   DRAFT: 'draft',
   SENT: 'sent',
+  SNOOZED: 'snoozed',
 } as const;
 
 export const LABELS = {
@@ -23,6 +25,7 @@ export const LABELS = {
   IMPORTANT: 'IMPORTANT',
   SENT: 'SENT',
   TRASH: 'TRASH',
+  SNOOZED: 'SNOOZED',
 } as const;
 
 export const FOLDER_NAMES = [
@@ -34,6 +37,7 @@ export const FOLDER_NAMES = [
   'important',
   'sent',
   'draft',
+  'snoozed',
 ];
 
 export const FOLDER_TAGS: Record<string, string[]> = {
@@ -42,6 +46,7 @@ export const FOLDER_TAGS: Record<string, string[]> = {
   [FOLDERS.ARCHIVE]: [],
   [FOLDERS.SENT]: [LABELS.SENT],
   [FOLDERS.BIN]: [LABELS.TRASH],
+  [FOLDERS.SNOOZED]: [LABELS.SNOOZED],
 };
 
 export const getFolderTags = (folder: string): string[] => {
@@ -199,13 +204,6 @@ export const truncateFileName = (name: string, maxLength = 15) => {
   return `${name.slice(0, maxLength)}...`;
 };
 
-export type FilterSuggestion = {
-  filter: string;
-  description: string;
-  icon: React.ReactNode;
-  prefix: string;
-};
-
 export const extractFilterValue = (filter: string): string => {
   if (!filter || !filter.includes(':')) return '';
 
@@ -349,7 +347,6 @@ export const constructReplyBody = (
   originalDate: string,
   originalSender: Sender | undefined,
   otherRecipients: Sender[],
-  quotedMessage?: string,
 ) => {
   const senderName = originalSender?.name || originalSender?.email || 'Unknown Sender';
   const recipientEmails = otherRecipients.map((r) => r.email).join(', ');
@@ -373,7 +370,6 @@ export const constructForwardBody = (
   originalDate: string,
   originalSender: Sender | undefined,
   otherRecipients: Sender[],
-  quotedMessage?: string,
 ) => {
   const senderName = originalSender?.name || originalSender?.email || 'Unknown Sender';
   const recipientEmails = otherRecipients.map((r) => r.email).join(', ');
@@ -492,7 +488,6 @@ export function parseNaturalLanguageSearch(query: string): string {
 export function parseNaturalLanguageDate(query: string): { from?: Date; to?: Date } | null {
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
 
   // Common date patterns
   const patterns = [
@@ -622,4 +617,14 @@ export const withExponentialBackoff = async <T>(
       retries++;
     }
   }
+};
+
+const PRO_PLANS = ['pro-example', 'pro_annual', 'team', 'enterprise'] as const;
+
+export const isProCustomer = (customer: Customer) => {
+  return customer?.products && Array.isArray(customer.products)
+    ? customer.products.some((product) =>
+        PRO_PLANS.some((plan) => product.id?.includes(plan) || product.name?.includes(plan)),
+      )
+    : false;
 };

@@ -23,7 +23,6 @@ import {
   HardDriveDownload,
   Loader2,
   CopyIcon,
-  SearchIcon,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,169 +30,33 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { cn, getEmailLogo, formatDate, formatTime, shouldShowSeparateTime } from '@/lib/utils';
+import { cn, formatDate, formatTime, shouldShowSeparateTime } from '@/lib/utils';
 import { Dialog, DialogTitle, DialogHeader, DialogContent } from '../ui/dialog';
 import { memo, useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { EmailVerificationBadge } from './email-verification-badge';
 import type { Sender, ParsedMessage, Attachment } from '@/types';
 import { useActiveConnection } from '@/hooks/use-connections';
-import { useBrainState } from '../../hooks/use-summary';
+import { useAttachments } from '@/hooks/use-attachments';
 import { useTRPC } from '@/providers/query-provider';
 import { useThreadLabels } from '@/hooks/use-labels';
 import { useMutation } from '@tanstack/react-query';
 import { Markdown } from '@react-email/components';
 import { useSummary } from '@/hooks/use-summary';
 import { TextShimmer } from '../ui/text-shimmer';
+import { useThread } from '@/hooks/use-threads';
+import { BimiAvatar } from '../ui/bimi-avatar';
 import { RenderLabels } from './render-labels';
+import { cleanHtml } from '@/lib/email-utils';
 import { MailContent } from './mail-content';
 import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
 import { FileText } from 'lucide-react';
-import { Button } from '../ui/button';
 import { useQueryState } from 'nuqs';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { cleanHtml } from '@/lib/email-utils';
 import { toast } from 'sonner';
-
-// HTML escaping function to prevent XSS attacks
-function escapeHtml(text: string): string {
-  if (!text) return text;
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function TextSelectionPopover({
-  children,
-  onSearch,
-}: {
-  children: React.ReactNode;
-  onSearch: (query: string) => void;
-}) {
-  const [selectionCoords, setSelectionCoords] = useState<{ x: number; y: number } | null>(null);
-  const [selectedText, setSelectedText] = useState('');
-  const popoverTriggerRef = useRef<HTMLDivElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  const handleSelectionChange = useCallback(() => {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) {
-      setSelectionCoords(null);
-      setSelectedText('');
-      return;
-    }
-
-    try {
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2 + window.scrollX - window.innerWidth / 2;
-      const y = rect.top + window.scrollY;
-
-      setSelectionCoords({ x: centerX, y });
-      setSelectedText(selection.toString().trim());
-    } catch (error) {
-      console.error('Error handling text selection:', error);
-      setSelectionCoords(null);
-      setSelectedText('');
-    }
-  }, []);
-
-  //   const handleClickOutside = useCallback((event: MouseEvent) => {
-  //     if (
-  //       popoverRef.current &&
-  //       !popoverRef.current.contains(event.target as Node) &&
-  //       !popoverTriggerRef.current?.contains(event.target as Node)
-  //     ) {
-  //       setSelectionCoords(null);
-  //       setSelectedText('');
-  //     }
-  //   }, []);
-
-  useEffect(() => {
-    document.addEventListener('mouseup', handleSelectionChange);
-    // document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        setSelectionCoords(null);
-        setSelectedText('');
-      }
-    });
-
-    return () => {
-      document.removeEventListener('mouseup', handleSelectionChange);
-      //   document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [handleSelectionChange]);
-
-  return (
-    <div className="relative" ref={popoverTriggerRef}>
-      {children}
-      {selectionCoords && (
-        <div
-          ref={popoverRef}
-          className="absolute z-50"
-          style={{
-            top: selectionCoords.y,
-            left: selectionCoords.x,
-          }}
-          role="dialog"
-          aria-label="Text selection options"
-        >
-          <Popover
-            open={!!selectedText.trim().length}
-            onOpenChange={(open) => (open ? undefined : setSelectedText(''))}
-          >
-            <PopoverTrigger asChild>
-              <button className="invisible h-0 w-0" aria-label="Text selection options" />
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              className="break-words rounded-lg p-0"
-              onInteractOutside={() => {
-                setSelectionCoords(null);
-                setSelectedText('');
-              }}
-            >
-              <div className="flex items-center justify-between gap-2 px-2">
-                <p className="text-muted-foreground max-w-[200px] truncate text-sm">
-                  {selectedText}
-                </p>
-                <div className="flex">
-                  <Button
-                    size="icon"
-                    className="scale-75 rounded-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      onSearch(selectedText);
-                    }}
-                  >
-                    <SearchIcon />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="scale-75 rounded-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      navigator.clipboard.writeText(selectedText);
-                    }}
-                  >
-                    <CopyIcon />
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Add formatFileSize utility function
 const formatFileSize = (size: number) => {
@@ -264,7 +127,7 @@ const StreamingText = ({ text }: { text: string }) => {
     <div className="flex items-center gap-2">
       <div
         className={cn(
-          'bg-gradient-to-r from-neutral-500 via-neutral-300 to-neutral-500 bg-[length:200%_100%] bg-clip-text text-sm leading-relaxed text-transparent',
+          'bg-linear-to-r bg-size-[200%_100%] from-neutral-500 via-neutral-300 to-neutral-500 bg-clip-text text-sm leading-relaxed text-transparent',
           isComplete ? 'animate-shine-slow' : '',
         )}
       >
@@ -377,17 +240,10 @@ const MailDisplayLabels = ({ labels }: { labels: string[] }) => {
   );
 };
 
-// Helper function to get first letter character
-const getFirstLetterCharacter = (name?: string) => {
-  if (!name) return '';
-  const match = name.match(/[a-zA-Z]/);
-  return match ? match[0].toUpperCase() : '';
-};
-
 // Helper function to clean email display
 const cleanEmailDisplay = (email?: string) => {
   if (!email) return '';
-  const match = email.match(/^[^a-zA-Z]*(.*?)[^a-zA-Z]*$/);
+  const match = email.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
   return match ? match[1] : email;
 };
 
@@ -404,7 +260,7 @@ const ThreadAttachments = ({ attachments }: { attachments: Attachment[] }) => {
     try {
       // Convert base64 to blob
       const byteCharacters = atob(attachment.body);
-      const byteNumbers = new Array(byteCharacters.length);
+      const byteNumbers: number[] = Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
@@ -435,7 +291,7 @@ const ThreadAttachments = ({ attachments }: { attachments: Attachment[] }) => {
       <div className="mt-2 flex flex-wrap gap-2">
         {attachments.map((attachment) => (
           <button
-            key={attachment.attachmentId}
+            key={`${attachment.attachmentId}-${attachment.filename}`}
             onClick={() => handleDownload(attachment)}
             className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-[#F0F0F0] dark:bg-[#262626] dark:hover:bg-[#303030]"
           >
@@ -495,8 +351,9 @@ type ActionButtonProps = {
 const ActionButton = ({ onClick, icon, text, shortcut }: ActionButtonProps) => {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="inline-flex h-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-white px-1.5 dark:border-none dark:bg-[#313131]"
+      className="inline-flex h-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-white px-1.5 dark:border-none dark:bg-[#313131] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#3d3d3d] transition-colors"
     >
       {icon}
       <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
@@ -516,10 +373,21 @@ const ActionButton = ({ onClick, icon, text, shortcut }: ActionButtonProps) => {
   );
 };
 
-const downloadAttachment = (attachment: { body: string; mimeType: string; filename: string }) => {
+const downloadAttachment = async (attachment: {
+  body: string;
+  mimeType: string;
+  filename: string;
+  attachmentId: string;
+}) => {
   try {
-    const byteCharacters = atob(attachment.body);
-    const byteNumbers = new Array(byteCharacters.length);
+    const attachmentData = attachment.body;
+
+    if (!attachmentData) {
+      throw new Error('Attachment data not found');
+    }
+
+    const byteCharacters = atob(attachmentData);
+    const byteNumbers: number[] = Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
@@ -536,6 +404,7 @@ const downloadAttachment = (attachment: { body: string; mimeType: string; filena
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Error downloading attachment:', error);
+    toast.error('Failed to download attachment');
   }
 };
 
@@ -551,7 +420,7 @@ const handleDownloadAllAttachments =
     attachments.forEach((attachment) => {
       try {
         const byteCharacters = atob(attachment.body);
-        const byteNumbers = new Array(byteCharacters.length);
+        const byteNumbers: number[] = Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
@@ -593,10 +462,21 @@ const handleDownloadAllAttachments =
     console.log('downloaded', subject, attachments);
   };
 
-const openAttachment = (attachment: { body: string; mimeType: string; filename: string }) => {
+const openAttachment = async (attachment: {
+  body: string;
+  mimeType: string;
+  filename: string;
+  attachmentId: string;
+}) => {
   try {
-    const byteCharacters = atob(attachment.body);
-    const byteNumbers = new Array(byteCharacters.length);
+    const attachmentData = attachment.body;
+
+    if (!attachmentData) {
+      throw new Error('Attachment data not found');
+    }
+
+    const byteCharacters = atob(attachmentData);
+    const byteNumbers: number[] = Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
@@ -622,12 +502,12 @@ const openAttachment = (attachment: { body: string; mimeType: string; filename: 
     }
   } catch (error) {
     console.error('Error opening attachment:', error);
+    toast.error('Failed to open attachment');
   }
 };
 
 const MoreAboutPerson = ({
   person,
-  extra,
   open,
   onOpenChange,
 }: {
@@ -776,6 +656,8 @@ const MoreAboutQuery = ({
 
 const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }: Props) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const { data: threadData } = useThread(emailData.threadId ?? null);
+  const { data: messageAttachments } = useAttachments(emailData.id);
   //   const [unsubscribed, setUnsubscribed] = useState(false);
   //   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [preventCollapse, setPreventCollapse] = useState(false);
@@ -794,12 +676,15 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
   const { labels: threadLabels } = useThreadLabels(
     emailData.tags ? emailData.tags.map((l) => l.id) : [],
   );
-  const { data: brainState } = useBrainState();
   const { data: activeConnection } = useActiveConnection();
   const [researchSender, setResearchSender] = useState<Sender | null>(null);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  //   const trpc = useTRPC();
 
-  const isLastEmail = totalEmails && index === totalEmails - 1;
+  const isLastEmail = useMemo(
+    () => emailData.id === threadData?.latest?.id,
+    [emailData.id, threadData?.latest?.id],
+  );
 
   const [, setMode] = useQueryState('mode');
 
@@ -1206,17 +1091,17 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             <!-- Email Body -->
             <div class="email-body">
               <div class="email-content">
-                ${escapeHtml(emailData?.decodedBody || '') || '<p><em>No email content available</em></p>'}
+                ${cleanHtml(emailData?.decodedBody || '')}
               </div>
             </div>
 
             <!-- Attachments -->
             ${
-              emailData.attachments && emailData.attachments.length > 0
+              messageAttachments && messageAttachments.length > 0
                 ? `
               <div class="attachments-section">
-                <h2 class="attachments-title">Attachments (${emailData.attachments.length})</h2>
-                ${emailData.attachments
+                <h2 class="attachments-title">Attachments (${messageAttachments.length})</h2>
+                ${messageAttachments
                   .map(
                     (attachment) => `
                   <div class="attachment-item">
@@ -1272,7 +1157,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
       }
     } catch (error) {
       console.error('Error printing email:', error);
-      alert('Failed to print email. Please try again.');
+      toast.error('Failed to print email. Please try again.');
     }
   };
 
@@ -1284,12 +1169,11 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             key={person.email}
             className="dark:bg-panelDark inline-flex items-center justify-start gap-1.5 overflow-hidden rounded-full border bg-white p-1 pr-2"
           >
-            <Avatar className="h-5 w-5">
-              <AvatarImage src={getEmailLogo(person.email)} className="rounded-full" />
-              <AvatarFallback className="bg-offsetLight rounded-full text-xs font-bold dark:bg-[#373737]">
-                {getFirstLetterCharacter(person.name || person.email)}
-              </AvatarFallback>
-            </Avatar>
+            <BimiAvatar
+              email={person.email}
+              name={person.name || person.email}
+              className="h-5 w-5"
+            />
             <div className="text-panelDark justify-start text-sm font-medium leading-none dark:text-white">
               {person.name || person.email}
             </div>
@@ -1297,12 +1181,11 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
         </PopoverTrigger>
         <PopoverContent className="min-w-fit text-sm">
           <div className="flex items-center gap-2">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={getEmailLogo(person.email)} className="rounded-full" />
-              <AvatarFallback className="bg-offsetLight rounded-full text-sm font-bold dark:bg-[#373737]">
-                {getFirstLetterCharacter(person.name || person.email)}
-              </AvatarFallback>
-            </Avatar>
+            <BimiAvatar
+              email={person.email}
+              name={person.name || person.email}
+              className="h-12 w-12"
+            />
             <div>
               <p className="font-medium">{person.name || 'Unknown'}</p>
               <div className="group flex items-center gap-2">
@@ -1350,7 +1233,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
         }
       }}
     >
-      <TextSelectionPopover onSearch={setSearchQuery}>
+      <>
         {searchQuery && (
           <MoreAboutQuery
             query={searchQuery}
@@ -1412,8 +1295,8 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="flex flex-col gap-1">
-                                {people.slice(2).map((person, index) => (
-                                  <div key={index}>{renderPerson(person)}</div>
+                                {people.slice(2).map((person) => (
+                                  <div key={person.email}>{renderPerson(person)}</div>
                                 ))}
                               </TooltipContent>
                             </Tooltip>
@@ -1425,53 +1308,49 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                     })()}
                   </div>
                 </div>
-                {brainState?.enabled && <AiSummary />}
+                <AiSummary />
                 {threadAttachments && threadAttachments.length > 0 && (
                   <ThreadAttachments attachments={threadAttachments} />
                 )}
               </>
             )}
           </div>
-          <div
-            className="flex cursor-pointer flex-col pb-2 transition-all duration-200"
-            onClick={toggleCollapse}
-          >
+          <div className="flex cursor-pointer flex-col pb-2 duration-200" onClick={toggleCollapse}>
             <div className="mt-3 flex w-full items-start justify-between gap-4 px-4">
               <div className="flex w-full justify-center gap-4">
-                <Avatar className="mt-3 h-8 w-8 rounded-full border dark:border-none">
-                  <AvatarImage
-                    className="rounded-full"
-                    src={getEmailLogo(emailData?.sender?.email)}
-                  />
-                  <AvatarFallback className="rounded-full bg-[#FFFFFF] font-bold text-[#9F9F9F] dark:bg-[#373737]">
-                    {getFirstLetterCharacter(emailData?.sender?.name)}
-                  </AvatarFallback>
-                </Avatar>
+                <BimiAvatar
+                  email={emailData?.sender?.email}
+                  name={emailData?.sender?.name}
+                  className="mt-3 h-8 w-8"
+                />
 
                 <div className="flex w-full items-center justify-between">
                   <div className="flex w-full items-center justify-start">
                     <div className="flex w-full flex-col">
                       <div className="flex w-full items-center justify-between">
                         <div className="flex items-center gap-1">
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              setResearchSender({
-                                name: emailData?.sender?.name || '',
-                                email: emailData?.sender?.email || '',
-                                //   extra: emailData?.sender?.extra || '',
-                              });
-                            }}
-                            className="hover:bg-muted font-semibold"
-                          >
-                            {cleanNameDisplay(emailData?.sender?.name)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setResearchSender({
+                                  name: emailData?.sender?.name || '',
+                                  email: emailData?.sender?.email || '',
+                                  //   extra: emailData?.sender?.extra || '',
+                                });
+                              }}
+                              className="hover:bg-muted font-semibold"
+                            >
+                              {cleanNameDisplay(emailData?.sender?.name)}
+                            </span>
+                            <EmailVerificationBadge messageId={emailData?.id} />
+                          </div>
 
                           <Popover open={openDetailsPopover} onOpenChange={handlePopoverChange}>
                             <PopoverTrigger asChild>
                               <button
-                                className="hover:bg-iconLight/10 dark:hover:bg-iconDark/20 flex items-center gap-2 rounded-md p-2"
+                                className="hover:bg-iconLight/10 dark:hover:bg-iconDark/20 flex items-center gap-2 rounded-md p-2 cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
@@ -1485,7 +1364,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                               </button>
                             </PopoverTrigger>
                             <PopoverContent
-                              className="dark:bg-panelDark flex w-[420px] overflow-auto rounded-lg border p-4 text-left shadow-lg"
+                              className="dark:bg-panelDark flex w-[420px] overflow-auto rounded-lg border p-4 text-left shadow-lg md:w-auto"
                               onBlur={(e) => {
                                 if (!triggerRef.current?.contains(e.relatedTarget)) {
                                   setOpenDetailsPopover(false);
@@ -1597,12 +1476,12 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                         </div>
 
                         <div className="flex items-center justify-center">
-                          <div className="text-muted-foreground mr-2 flex flex-col items-end text-sm font-medium dark:text-[#8C8C8C]">
-                            <time>
+                          <div className="text-muted-foreground flex-nowrap! mr-2 flex flex-col items-end text-sm font-medium dark:text-[#8C8C8C]">
+                            <time className="whitespace-nowrap">
                               {emailData?.receivedOn ? formatDate(emailData.receivedOn) : ''}
                             </time>
                             {shouldShowSeparateTime(emailData?.receivedOn) && (
-                              <time className="text-xs opacity-75">
+                              <time className="whitespace-nowrap text-xs opacity-75">
                                 {emailData?.receivedOn && formatTime(emailData.receivedOn)}
                               </time>
                             )}
@@ -1616,7 +1495,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                   e.stopPropagation();
                                   e.preventDefault();
                                 }}
-                                className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md bg-white focus:outline-none focus:ring-0 dark:bg-[#313131]"
+                                className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md bg-white hover:bg-gray-100 focus:outline-none focus:ring-0 dark:bg-[#313131] dark:hover:bg-[#3d3d3d] cursor-pointer transition-colors"
                               >
                                 <ThreeDots className="fill-iconLight dark:fill-iconDark" />
                               </button>
@@ -1632,22 +1511,26 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 <Printer className="fill-iconLight dark:fill-iconDark mr-2 h-4 w-4" />
                                 {m['common.mailDisplay.print']()}
                               </DropdownMenuItem>
-                              {(emailData.attachments?.length ?? 0) > 0 && (
-                              <DropdownMenuItem
-                                disabled={!emailData.attachments?.length}
-                                className={!emailData.attachments?.length ? "data-[disabled]:pointer-events-auto" : ""}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  handleDownloadAllAttachments(
-                                    emailData.subject || 'email',
-                                    emailData.attachments || [],
-                                  )();
-                                }}
-                              >
-                                <HardDriveDownload className="fill-iconLight dark:text-iconDark dark:fill-iconLight mr-2 h-4 w-4" />
-                                Download All Attachments
-                              </DropdownMenuItem>
+                              {(messageAttachments?.length ?? 0) > 0 && (
+                                <DropdownMenuItem
+                                  disabled={!messageAttachments?.length}
+                                  className={
+                                    !messageAttachments?.length
+                                      ? 'data-disabled:pointer-events-auto'
+                                      : ''
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    handleDownloadAllAttachments(
+                                      emailData.subject || 'email',
+                                      messageAttachments || [],
+                                    )();
+                                  }}
+                                >
+                                  <HardDriveDownload className="fill-iconLight dark:text-iconDark dark:fill-iconLight mr-2 h-4 w-4" />
+                                  Download All Attachments
+                                </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1754,16 +1637,11 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             </div>
           </div>
 
-          <div
-            className={cn(
-              'h-0 overflow-hidden transition-all duration-200',
-              !isCollapsed && 'h-[1px]',
-            )}
-          ></div>
+          <div className={cn('h-0 overflow-hidden duration-200', !isCollapsed && 'h-px')}></div>
 
           <div
             className={cn(
-              'grid overflow-hidden transition-all duration-200',
+              'grid overflow-hidden duration-200',
               isCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
             )}
             onClick={(e) => e.stopPropagation()}
@@ -1779,10 +1657,13 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                   />
                 ) : null}
                 {/* mail attachments */}
-                {emailData?.attachments && emailData?.attachments.length > 0 ? (
+                {messageAttachments && messageAttachments.length > 0 ? (
                   <div className="mb-4 flex flex-wrap items-center gap-2 px-4 pt-4">
-                    {emailData?.attachments.map((attachment, index) => (
-                      <div key={index} className="flex">
+                    {messageAttachments.map((attachment) => (
+                      <div
+                        key={`${attachment.filename}-${attachment.attachmentId}`}
+                        className="flex"
+                      >
                         <button
                           className="flex cursor-pointer items-center gap-1 rounded-[5px] bg-[#FAFAFA] px-1.5 py-1 text-sm font-medium hover:bg-[#F0F0F0] dark:bg-[#262626] dark:hover:bg-[#303030]"
                           onClick={() => openAttachment(attachment)}
@@ -1801,8 +1682,8 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                         >
                           <HardDriveDownload className="text-muted-foreground dark:text-muted-foreground h-4 w-4 fill-[#FAFAFA] dark:fill-[#262626]" />
                         </button>
-                        {index < (emailData?.attachments?.length || 0) - 1 && (
-                          <div className="m-auto h-2 w-[1px] bg-[#E0E0E0] dark:bg-[#424242]" />
+                        {index < (messageAttachments?.length || 0) - 1 && (
+                          <div className="m-auto h-2 w-px bg-[#E0E0E0] dark:bg-[#424242]" />
                         )}
                       </div>
                     ))}
@@ -1847,7 +1728,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             </div>
           </div>
         </div>
-      </TextSelectionPopover>
+      </>
     </div>
   );
 };

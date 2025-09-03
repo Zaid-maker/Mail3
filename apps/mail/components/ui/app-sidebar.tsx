@@ -1,58 +1,37 @@
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogOverlay,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarMenu,
-} from '@/components/ui/sidebar';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { SquarePenIcon, type SquarePenIconHandle } from '../icons/animated/square-pen';
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from './input-otp';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { navigationConfig, bottomNavItems } from '@/config/navigation';
-import { useSession, authClient } from '@/lib/auth-client';
-import React, { useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { zodResolver } from '@hookform/resolvers/zod';
+// import { useTRPC } from '@/providers/query-provider';
 import { useSidebar } from '@/components/ui/sidebar';
 import { CreateEmail } from '../create/create-email';
+// import { useMutation } from '@tanstack/react-query';
 import { PencilCompose, X } from '../icons/icons';
 import { useBilling } from '@/hooks/use-billing';
 import { useIsMobile } from '@/hooks/use-mobile';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useSession } from '@/lib/auth-client';
 import { useAIFullScreen } from './ai-sidebar';
 import { useStats } from '@/hooks/use-stats';
 import { useLocation } from 'react-router';
-import { useForm } from 'react-hook-form';
+import { cn, FOLDERS } from '@/lib/utils';
 import { m } from '@/paraglide/messages';
-import { FOLDERS } from '@/lib/utils';
+// import { Video } from 'lucide-react';
 import { NavUser } from './nav-user';
 import { NavMain } from './nav-main';
 import { useQueryState } from 'nuqs';
-import { Input } from './input';
-import { toast } from 'sonner';
-import { z } from 'zod';
+// import { toast } from 'sonner';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isPro, isLoading } = useBilling();
+  //   const trpc = useTRPC();
+  //   const { mutateAsync: createMeet } = useMutation(trpc.meet.create.mutationOptions());
   const [showUpgrade, setShowUpgrade] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('hideUpgradeCard') !== 'true';
@@ -60,13 +39,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return true;
   });
   const [, setPricingDialog] = useQueryState('pricingDialog');
-
   const { isFullScreen } = useAIFullScreen();
-
   const { data: stats } = useStats();
-
   const location = useLocation();
-  const { data: session, isPending: isSessionPending } = useSession();
+  const { data: session } = useSession();
   const { currentSection, navItems } = useMemo(() => {
     // Find which section we're in based on the pathname
     const section = Object.entries(navigationConfig).find(([, config]) =>
@@ -100,6 +76,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const showComposeButton = currentSection === 'mail';
   const { state } = useSidebar();
 
+  //   const handleCreateMeet = async () => {
+  //     try {
+  //       const {
+  //         data: { id },
+  //       } = await createMeet();
+  //       navigator.clipboard.writeText(`https://meet.0.email/${id}`);
+  //       toast.success('Meeting linked copied to clipboard');
+  //     } catch (error) {
+  //       console.error(error);
+  //       toast.error('Failed to create meeting');
+  //     }
+  //   };
+
   return (
     <div>
       {!isFullScreen && (
@@ -114,8 +103,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {session && <NavUser />}
 
             {showComposeButton && (
-              <div>
-                <ComposeButton />
+              <div className="flex gap-1">
+                <div className={cn('w-full')}>
+                  <ComposeButton />
+                </div>
+                {/* {isPro ? (
+                  <button
+                    onClick={handleCreateMeet}
+                    className="hover:bg-muted-foreground/10 inline-flex h-8 w-[20%] items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white px-1.5 dark:border-none dark:bg-[#313131]"
+                  >
+                    <Video className="text-muted-foreground h-4 w-4" />
+                  </button>
+                ) : null} */}
               </div>
             )}
           </SidebarHeader>
@@ -157,7 +156,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 className="mt-3 inline-flex h-7 w-full items-center justify-center gap-0.5 overflow-hidden rounded-lg bg-[#8B5CF6] px-2"
               >
                 <div className="flex items-center justify-center gap-2.5 px-0.5">
-                  <div className="justify-start md:text-sm leading-none text-white whitespace-nowrap text-xs">
+                  <div className="justify-start whitespace-nowrap text-xs leading-none text-white md:text-sm">
                     Start 7 day free trial
                   </div>
                 </div>
@@ -186,11 +185,14 @@ function ComposeButton() {
 
   const handleOpenChange = async (open: boolean) => {
     if (!open) {
-      await setDialogOpen(null);
+      setDialogOpen(null);
     } else {
-      await setDialogOpen('true');
+      setDialogOpen('true');
     }
-    await Promise.all([setDraftId(null), setTo(null), setActiveReplyId(null), setMode(null)]);
+    setDraftId(null);
+    setTo(null);
+    setActiveReplyId(null);
+    setMode(null);
   };
   return (
     <Dialog open={!!dialogOpen} onOpenChange={handleOpenChange}>
@@ -198,13 +200,13 @@ function ComposeButton() {
       <DialogDescription></DialogDescription>
 
       <DialogTrigger asChild>
-        <button className="relative mb-1.5 inline-flex h-8 w-full items-center justify-center gap-1 self-stretch overflow-hidden rounded-lg border border-gray-200 bg-white text-black dark:border-none dark:bg-[#2C2C2C] dark:text-white">
+        <button type="button" className="relative mb-1.5 inline-flex h-8 w-full items-center justify-center gap-1 self-stretch overflow-hidden rounded-lg border border-gray-200 bg-[#006FFE] text-black dark:border-none dark:text-white cursor-pointer hover:bg-[#0056CC] dark:hover:bg-[#0056CC] transition-colors">
           {state === 'collapsed' && !isMobile ? (
-            <PencilCompose className="fill-iconLight dark:fill-iconDark mt-0.5 text-black" />
+            <PencilCompose className="mt-0.5 fill-white text-black" />
           ) : (
             <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
-              <PencilCompose className="fill-iconLight dark:fill-iconDark" />
-              <div className="justify-start text-sm leading-none">
+              <PencilCompose className="fill-white" />
+              <div className="justify-start text-sm leading-none text-white">
                 {m['common.commandPalette.commands.newEmail']()}
               </div>
             </div>

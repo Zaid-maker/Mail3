@@ -165,8 +165,13 @@
       "attachments": "Adjunts",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "adjunts",
             "countPlural=one": "adjunt",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "fitxers",
             "countPlural=one": "fitxer",
@@ -249,8 +259,13 @@
       "search": "Cerca notes...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Afegeix notes",
             "countPlural=one": "# nota",
@@ -312,8 +327,13 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "respostes",
             "countPlural=one": "# resposta",
@@ -370,7 +390,8 @@
       "failedToMute": "No s'ha pogut silenciar",
       "failedToUnmute": "No s'ha pogut activar el so",
       "archived": "Arxivat",
-      "failedToArchive": "No s'ha pogut arxivar"
+      "failedToArchive": "No s'ha pogut arxivar",
+      "openInNewTab": "Obre en una pestanya nova"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "Suport en directe",
       "feedback": "Feedback",
       "settings": "Configuració",
-      "voice": "Assistent de veu"
+      "voice": "Assistent de veu",
+      "snoozed": "Posposat"
     },
     "settings": {
       "general": "General",
@@ -414,7 +436,7 @@
       "signatures": "Signatures",
       "shortcuts": "Dreceres",
       "labels": "Etiquetes",
-      "categories": "Categories",
+      "categories": "Vistes",
       "dangerZone": "Zona perillosa",
       "deleteAccount": "Elimina el compte",
       "privacy": "Privacitat"
@@ -446,11 +468,15 @@
         "noResultsFound": "No s'han trobat resultats",
         "zeroSignature": "Signatura Zero",
         "zeroSignatureDescription": "Afegeix una signatura Zero als teus correus.",
+        "undoSendEnabled": "Desfer enviament",
+        "undoSendEnabledDescription": "Permet cancel·lar correus electrònics dins dels 30 segons després d'enviar-los.",
         "defaultEmailAlias": "Àlies de correu predeterminat",
         "selectDefaultEmail": "Selecciona el correu predeterminat",
         "defaultEmailDescription": "Aquest correu s'utilitzarà com a adreça predeterminada 'De' quan es redactin nous correus",
         "autoRead": "Lectura automàtica",
-        "autoReadDescription": "Marca automàticament els correus electrònics com a llegits quan hi fas clic."
+        "autoReadDescription": "Marca automàticament els correus electrònics com a llegits quan hi fas clic.",
+        "animations": "Animacions",
+        "animationsDescription": "Activa les animacions suaus en canviar entre correus electrònics"
       },
       "connections": {
         "title": "Connexions Correu",

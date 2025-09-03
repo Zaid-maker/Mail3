@@ -165,8 +165,13 @@
       "attachments": "Pièces jointes",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "pièces jointes",
             "countPlural=one": "pièce jointe",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "fichiers",
             "countPlural=one": "fichier",
@@ -249,8 +259,13 @@
       "search": "Rechercher des notes...",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Ajoutez des notes",
             "countPlural=one": "# note",
@@ -312,8 +327,13 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "réponses",
             "countPlural=one": "# réponse",
@@ -370,7 +390,8 @@
       "failedToMute": "Échec de la coupure du son",
       "failedToUnmute": "Échec de la réactivation du son",
       "archived": "Archivé",
-      "failedToArchive": "Échec de l'archivage"
+      "failedToArchive": "Échec de l'archivage",
+      "openInNewTab": "Ouvrir dans un nouvel onglet"
     },
     "units": {
       "mb": "{amount} Mo"
@@ -404,7 +425,8 @@
       "livesupport": "Support en direct",
       "feedback": "Vos commentaires",
       "settings": "Paramètres",
-      "voice": "Assistant vocal"
+      "voice": "Assistant vocal",
+      "snoozed": "En sommeil"
     },
     "settings": {
       "general": "Général",
@@ -414,7 +436,7 @@
       "signatures": "Signatures",
       "shortcuts": "Raccourcis",
       "labels": "Étiquettes",
-      "categories": "Catégories",
+      "categories": "Vues",
       "dangerZone": "Zone dangereuse",
       "deleteAccount": "Supprimer le compte",
       "privacy": "Confidentialité"
@@ -446,11 +468,15 @@
         "noResultsFound": "Aucun résultat trouvé",
         "zeroSignature": "Signature Zero",
         "zeroSignatureDescription": "Ajouter une signature Zero à vos courriels.",
+        "undoSendEnabled": "Annuler l'envoi",
+        "undoSendEnabledDescription": "Permettre d'annuler les emails dans les 30 secondes suivant l'envoi.",
         "defaultEmailAlias": "Alias e-mail par défaut",
         "selectDefaultEmail": "Sélectionner l'e-mail par défaut",
         "defaultEmailDescription": "Cette adresse e-mail sera utilisée comme adresse d'expédition par défaut lors de la rédaction de nouveaux e-mails",
         "autoRead": "Lecture automatique",
-        "autoReadDescription": "Marquer automatiquement les emails comme lus lorsque vous cliquez dessus."
+        "autoReadDescription": "Marquer automatiquement les emails comme lus lorsque vous cliquez dessus.",
+        "animations": "Animations",
+        "animationsDescription": "Activer les animations fluides lors du passage d'un e-mail à l'autre"
       },
       "connections": {
         "title": "Connexions de courriels",

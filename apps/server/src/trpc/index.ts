@@ -1,6 +1,8 @@
 import { type inferRouterInputs, type inferRouterOutputs } from '@trpc/server';
 import { cookiePreferencesRouter } from './routes/cookies';
 import { connectionsRouter } from './routes/connections';
+import { categoriesRouter } from './routes/categories';
+import { templatesRouter } from './routes/templates';
 import { shortcutRouter } from './routes/shortcut';
 import { settingsRouter } from './routes/settings';
 import { getContext } from 'hono/context-storage';
@@ -9,14 +11,17 @@ import { labelsRouter } from './routes/label';
 import { notesRouter } from './routes/notes';
 import { brainRouter } from './routes/brain';
 import { userRouter } from './routes/user';
+import { meetRouter } from './routes/meet';
 import { mailRouter } from './routes/mail';
+import { bimiRouter } from './routes/bimi';
 import type { HonoContext } from '../ctx';
 import { aiRouter } from './routes/ai';
 import { router } from './trpc';
-import { categoriesRouter } from './routes/categories';
+import { loggingRouter } from './routes/logging';
 
 export const appRouter = router({
   ai: aiRouter,
+  bimi: bimiRouter,
   brain: brainRouter,
   categories: categoriesRouter,
   connections: connectionsRouter,
@@ -28,6 +33,9 @@ export const appRouter = router({
   shortcut: shortcutRouter,
   settings: settingsRouter,
   user: userRouter,
+  templates: templatesRouter,
+  meet: meetRouter,
+  logging: loggingRouter,
 });
 
 export type AppRouter = typeof appRouter;
@@ -41,6 +49,5 @@ export const serverTrpc = () => {
     c,
     sessionUser: c.var.sessionUser,
     auth: c.var.auth,
-    autumn: c.var.autumn,
   });
 };

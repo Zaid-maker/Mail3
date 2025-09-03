@@ -1,12 +1,4 @@
 import {
-  cn,
-  FOLDERS,
-  formatDate,
-  getEmailLogo,
-  getMainSearchTerm,
-  parseNaturalLanguageSearch,
-} from '@/lib/utils';
-import {
   Archive2,
   ExclamationCircle,
   GroupPeople,
@@ -20,45 +12,40 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ComponentProps,
+  useState,
 } from 'react';
-import { useIsFetching, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
 import { focusedIndexAtom, useMailNavigation } from '@/hooks/use-mail-navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsFetching, type UseQueryResult } from '@tanstack/react-query';
 import type { MailSelectMode, ParsedMessage, ThreadProps } from '@/types';
 import type { ParsedDraft } from '../../../server/src/lib/driver/types';
 import { ThreadContextMenu } from '@/components/context/thread-context';
 import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useMail, type Config } from '@/components/mail/use-mail';
 import { type ThreadDestination } from '@/lib/thread-actions';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { useSearchValue } from '@/hooks/use-search-value';
 import { EmptyStateIcon } from '../icons/empty-state-svg';
 import { highlightText } from '@/lib/email-utils.client';
-import { useHotkeysContext } from 'react-hotkeys-hook';
-import { AnimatePresence, motion } from 'motion/react';
+import { cn, FOLDERS, formatDate } from '@/lib/utils';
 import { useTRPC } from '@/providers/query-provider';
 import { useThreadLabels } from '@/hooks/use-labels';
-import { template } from '@/lib/email-utils.client';
 import { useSettings } from '@/hooks/use-settings';
-import { useThreadNotes } from '@/hooks/use-notes';
 import { useKeyState } from '@/hooks/use-hot-key';
 import { VList, type VListHandle } from 'virtua';
+import { BimiAvatar } from '../ui/bimi-avatar';
 import { RenderLabels } from './render-labels';
 import { Badge } from '@/components/ui/badge';
 import { useDraft } from '@/hooks/use-drafts';
 import { Check, Star } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
-import { StickyNote } from 'lucide-react';
 import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
-import { useTheme } from 'next-themes';
 import { Button } from '../ui/button';
+import { Avatar } from '../ui/avatar';
 import { useQueryState } from 'nuqs';
-import { Categories } from './mail';
 import { useAtom } from 'jotai';
 
 const Thread = memo(
@@ -68,17 +55,12 @@ const Thread = memo(
     isKeyboardFocused,
     index,
   }: ThreadProps & { index?: number }) {
-    const [searchValue, setSearchValue] = useSearchValue();
+    const [searchValue] = useSearchValue();
     const { folder } = useParams<{ folder: string }>();
-    const [{}, threads] = useThreads();
+    const [, threads] = useThreads();
     const [threadId] = useQueryState('threadId');
-    const {
-      data: getThreadData,
-      isGroupThread,
-      latestDraft,
-    } = useThread(message.id, message.historyId);
+    const { data: getThreadData, isGroupThread, latestDraft } = useThread(message.id);
     const [id, setThreadId] = useQueryState('threadId');
-    const [, setActiveReplyId] = useQueryState('activeReplyId');
     const [focusedIndex, setFocusedIndex] = useAtom(focusedIndexAtom);
 
     const { latestMessage, idToUse, cleanName } = useMemo(() => {
@@ -90,69 +72,69 @@ const Thread = memo(
 
       return { latestMessage, idToUse, cleanName };
     }, [getThreadData?.latest]);
-    const { data: settingsData } = useSettings();
-    const queryClient = useQueryClient();
-
-    // // Check if thread has notes
-    // const { data: threadNotes } = useThreadNotes(idToUse || '');
-    // const hasNotes = useMemo(() => {
-    //   return (threadNotes?.notes && threadNotes.notes.length > 0) || false;
-    // }, [threadNotes?.notes]);
 
     const optimisticState = useOptimisticThreadState(idToUse ?? '');
 
-    const { displayStarred, displayImportant, displayUnread, optimisticLabels } = useMemo(() => {
-      const displayStarred =
-        optimisticState.optimisticStarred !== null
-          ? optimisticState.optimisticStarred
-          : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'STARRED') ?? false);
+    const { displayStarred, displayImportant, displayUnread, optimisticLabels, emailContent } =
+      useMemo(() => {
+        const emailContent = getThreadData?.latest?.body;
+        const displayStarred =
+          optimisticState.optimisticStarred !== null
+            ? optimisticState.optimisticStarred
+            : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'STARRED') ?? false);
 
-      const displayImportant =
-        optimisticState.optimisticImportant !== null
-          ? optimisticState.optimisticImportant
-          : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'IMPORTANT') ?? false);
+        const displayImportant =
+          optimisticState.optimisticImportant !== null
+            ? optimisticState.optimisticImportant
+            : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'IMPORTANT') ?? false);
 
-      const displayUnread =
-        optimisticState.optimisticRead !== null
-          ? !optimisticState.optimisticRead
-          : (getThreadData?.hasUnread ?? false);
+        const displayUnread =
+          optimisticState.optimisticRead !== null
+            ? !optimisticState.optimisticRead
+            : (getThreadData?.hasUnread ?? false);
 
-      let labels: { id: string; name: string }[] = [];
-      if (getThreadData?.labels) {
-        labels = [...getThreadData.labels];
-        const hasStarredLabel = labels.some((label) => label.name === 'STARRED');
+        let labels: { id: string; name: string }[] = [];
+        if (getThreadData?.labels) {
+          labels = [...getThreadData.labels];
+          const hasStarredLabel = labels.some((label) => label.name === 'STARRED');
 
-        if (optimisticState.optimisticStarred !== null) {
-          if (optimisticState.optimisticStarred && !hasStarredLabel) {
-            labels.push({ id: 'starred-optimistic', name: 'STARRED' });
-          } else if (!optimisticState.optimisticStarred && hasStarredLabel) {
-            labels = labels.filter((label) => label.name !== 'STARRED');
+          if (optimisticState.optimisticStarred !== null) {
+            if (optimisticState.optimisticStarred && !hasStarredLabel) {
+              labels.push({ id: 'starred-optimistic', name: 'STARRED' });
+            } else if (!optimisticState.optimisticStarred && hasStarredLabel) {
+              labels = labels.filter((label) => label.name !== 'STARRED');
+            }
+          }
+
+          if (optimisticState.optimisticLabels) {
+            labels = labels.filter(
+              (label) => !optimisticState.optimisticLabels.removedLabelIds.includes(label.id),
+            );
+
+            optimisticState.optimisticLabels.addedLabelIds.forEach((labelId) => {
+              if (!labels.some((label) => label.id === labelId)) {
+                labels.push({ id: labelId, name: labelId });
+              }
+            });
           }
         }
 
-        if (optimisticState.optimisticLabels) {
-          labels = labels.filter(
-            (label) => !optimisticState.optimisticLabels.removedLabelIds.includes(label.id),
-          );
-
-          optimisticState.optimisticLabels.addedLabelIds.forEach((labelId) => {
-            if (!labels.some((label) => label.id === labelId)) {
-              labels.push({ id: labelId, name: labelId });
-            }
-          });
-        }
-      }
-
-      return { displayStarred, displayImportant, displayUnread, optimisticLabels: labels };
-    }, [
-      optimisticState.optimisticStarred,
-      optimisticState.optimisticImportant,
-      optimisticState.optimisticRead,
-      getThreadData?.latest?.tags,
-      getThreadData?.hasUnread,
-      getThreadData?.labels,
-      optimisticState.optimisticLabels,
-    ]);
+        return {
+          displayStarred,
+          displayImportant,
+          displayUnread,
+          optimisticLabels: labels,
+          emailContent,
+        };
+      }, [
+        optimisticState.optimisticStarred,
+        optimisticState.optimisticImportant,
+        optimisticState.optimisticRead,
+        getThreadData?.latest?.tags,
+        getThreadData?.hasUnread,
+        getThreadData?.labels,
+        optimisticState.optimisticLabels,
+      ]);
 
     const { optimisticToggleStar, optimisticToggleImportant, optimisticMoveThreadsTo } =
       useOptimisticActions();
@@ -203,69 +185,18 @@ const Thread = memo(
       [idToUse, folder, optimisticMoveThreadsTo, handleNext],
     );
 
-    const emailContent = getThreadData?.latest?.body;
-
-    // Prefetch email template processing for better performance
-    useEffect(() => {
-      if (!latestMessage?.body || !latestMessage?.sender?.email) return;
-
-      const senderEmail = latestMessage.sender.email;
-      const isTrustedSender =
-        settingsData?.settings?.externalImages ||
-        settingsData?.settings?.trustedSenders?.includes(senderEmail);
-
-      // Prefetch with both trusted and untrusted states for instant switching
-      queryClient.prefetchQuery({
-        queryKey: ['email-template', latestMessage.body, isTrustedSender],
-        queryFn: () => template(latestMessage.body, isTrustedSender),
-        staleTime: 30 * 60 * 1000,
-        gcTime: 60 * 60 * 1000,
-      });
-
-      // Also prefetch the opposite state for instant image toggle
-      queryClient.prefetchQuery({
-        queryKey: ['email-template', latestMessage.body, !isTrustedSender],
-        queryFn: () => template(latestMessage.body, !isTrustedSender),
-        staleTime: 30 * 60 * 1000,
-        gcTime: 60 * 60 * 1000,
-      });
-    }, [latestMessage?.body, latestMessage?.sender?.email, settingsData?.settings, queryClient]);
-
     const { labels: threadLabels } = useThreadLabels(
       optimisticLabels ? optimisticLabels.map((l) => l.id) : [],
     );
 
-    const mainSearchTerm = useMemo(() => {
-      if (!searchValue.highlight) return '';
-      return getMainSearchTerm(searchValue.highlight);
-    }, [searchValue.highlight]);
-
-    const semanticSearchQuery = useMemo(() => {
-      if (!searchValue.value) return '';
-      return parseNaturalLanguageSearch(searchValue.value);
-    }, [searchValue.value]);
-
-    // Use semanticSearchQuery when filtering/searching emails
-    useEffect(() => {
-      if (semanticSearchQuery && semanticSearchQuery !== searchValue.value) {
-        // Update the search value with our semantic query
-        setSearchValue({
-          ...searchValue,
-          value: semanticSearchQuery,
-          isAISearching: true,
-        });
-      }
-    }, [semanticSearchQuery]);
-
     const [mailState, setMail] = useMail();
+    const { isMailSelected, isMailBulkSelected } = useMemo(() => {
+      const isSelected =
+        !threadId || !idToUse ? false : idToUse === threadId || threadId === mailState.selected;
+      const isBulkSelected = idToUse ? mailState.bulkSelected.includes(idToUse) : false;
 
-    const isMailSelected = useMemo(() => {
-      if (!threadId || !idToUse) return false;
-      const _threadId = idToUse;
-      return _threadId === threadId || threadId === mailState.selected;
-    }, [threadId, idToUse, mailState.selected]);
-
-    const isMailBulkSelected = idToUse ? mailState.bulkSelected.includes(idToUse) : false;
+      return { isMailSelected: isSelected, isMailBulkSelected: isBulkSelected };
+    }, [threadId, idToUse, mailState.selected, mailState.bulkSelected]);
 
     const { isFolderInbox, isFolderSpam, isFolderSent, isFolderBin } = useMemo(
       () => ({
@@ -282,23 +213,25 @@ const Thread = memo(
       return !!latestDraft;
     }, [latestDraft]);
 
-    const content =
-      latestMessage && getThreadData ? (
+    const content = useMemo(() => {
+      if (!latestMessage || !getThreadData) return null;
+
+      return (
         <div
           className={cn('select-none border-b md:my-1 md:border-none')}
           onClick={onClick ? onClick(latestMessage) : undefined}
-          onMouseEnter={() => {
-            window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: idToUse } }));
-          }}
-          onMouseLeave={() => {
-            window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: null } }));
-          }}
+          //   onMouseEnter={() => {
+          //     window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: idToUse } }));
+          //   }}
+          //   onMouseLeave={() => {
+          //     window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: null } }));
+          //   }}
         >
           <div
             data-thread-id={idToUse}
             key={idToUse}
             className={cn(
-              'hover:bg-offsetLight hover:bg-primary/5 group relative mx-1 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm transition-all hover:opacity-100',
+              'hover:bg-offsetLight dark:hover:bg-primary/5 group relative mx-1 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm hover:opacity-100',
               (isMailSelected || isMailBulkSelected || isKeyboardFocused) &&
                 'border-border bg-primary/5 opacity-100',
               isKeyboardFocused && 'ring-primary/50',
@@ -308,8 +241,8 @@ const Thread = memo(
           >
             <div
               className={cn(
-                'dark:bg-panelDark absolute right-2 z-[25] flex -translate-y-1/2 items-center gap-1 rounded-xl border bg-white p-1 opacity-0 shadow-sm group-hover:opacity-100',
-                index === 0 ? 'top-4' : 'top-[-1]',
+                'dark:bg-panelDark z-25 absolute right-2 flex -translate-y-1/2 items-center gap-1 rounded-xl border bg-white p-1 opacity-0 shadow-sm group-hover:opacity-100',
+                index === 0 ? 'top-4' : 'top-[-1px]',
               )}
             >
               <Tooltip>
@@ -412,55 +345,47 @@ const Thread = memo(
               className={`relative flex w-full items-center justify-between gap-4 px-4 ${displayUnread ? '' : 'opacity-60'}`}
             >
               <div>
-                <Avatar
-                  className={cn(
-                    'h-8 w-8 rounded-full',
-                    displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
-                  )}
-                >
-                  <div
+                {isMailBulkSelected ? (
+                  <Avatar
                     className={cn(
-                      'flex h-full w-full items-center justify-center rounded-full bg-[#006FFE] p-2 dark:bg-[#006FFE]',
-                      {
-                        hidden: !isMailBulkSelected,
-                      },
+                      'h-8 w-8 rounded-full',
+                      displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
                     )}
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      setMail((prev: Config) => ({
-                        ...prev,
-                        bulkSelected: prev.bulkSelected.filter((id: string) => id !== idToUse),
-                      }));
-                    }}
                   >
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                  {isGroupThread ? (
+                    <div
+                      className="flex h-full w-full items-center justify-center rounded-full bg-[#006FFE] p-2 dark:bg-[#006FFE]"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setMail((prev: Config) => ({
+                          ...prev,
+                          bulkSelected: prev.bulkSelected.filter((id: string) => id !== idToUse),
+                        }));
+                      }}
+                    >
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  </Avatar>
+                ) : isGroupThread ? (
+                  <Avatar
+                    className={cn(
+                      'h-8 w-8 rounded-full',
+                      displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
+                    )}
+                  >
                     <div className="flex h-full w-full items-center justify-center rounded-full bg-[#FFFFFF] p-2 dark:bg-[#373737]">
                       <GroupPeople className="h-4 w-4" />
                     </div>
-                  ) : (
-                    <>
-                      <AvatarImage
-                        className="rounded-full bg-[#FFFFFF] dark:bg-[#373737]"
-                        src={getEmailLogo(latestMessage.sender.email)}
-                        alt={cleanName || latestMessage.sender.email}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                      <AvatarFallback
-                        className="rounded-full bg-[#FFFFFF] font-bold text-[#9F9F9F] dark:bg-[#373737]"
-                        delayMs={0}
-                      >
-                        {cleanName
-                          ? cleanName[0]?.toUpperCase()
-                          : latestMessage.sender.email[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </>
-                  )}
-                </Avatar>
+                  </Avatar>
+                ) : (
+                  <BimiAvatar
+                    email={latestMessage.sender.email}
+                    name={cleanName || latestMessage.sender.email}
+                    className={cn(
+                      'h-8 w-8 rounded-full',
+                      displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
+                    )}
+                  />
+                )}
                 {/* {displayUnread && !isMailSelected && !isFolderSent ? (
                   <>
                     <span className="absolute left-2 top-2 size-1.5 rounded bg-[#006FFE]" />
@@ -593,7 +518,26 @@ const Thread = memo(
             </div>
           </div>
         </div>
-      ) : null;
+      );
+    }, [
+      latestMessage,
+      getThreadData,
+      optimisticState,
+      idToUse,
+      folder,
+      isFolderBin,
+      isFolderSent,
+      isFolderSpam,
+      isFolderInbox,
+      onClick,
+      searchValue,
+      displayUnread,
+      isMailSelected,
+      isMailBulkSelected,
+      threadLabels,
+      optimisticLabels,
+      emailContent,
+    ]);
 
     return latestMessage ? (
       !optimisticState.shouldHide && idToUse ? (
@@ -619,16 +563,31 @@ const Thread = memo(
   },
 );
 
-const Draft = memo(({ message }: { message: { id: string } }) => {
+const Draft = memo(({ message, index }: { message: { id: string }; index: number }) => {
   const draftQuery = useDraft(message.id) as UseQueryResult<ParsedDraft>;
   const draft = draftQuery.data;
   const [, setComposeOpen] = useQueryState('isComposeOpen');
   const [, setDraftId] = useQueryState('draftId');
+  const { optimisticDeleteDraft } = useOptimisticActions();
+  const optimisticState = useOptimisticThreadState(message.id);
+
   const handleMailClick = useCallback(() => {
     setComposeOpen('true');
     setDraftId(message.id);
     return;
   }, [message.id]);
+
+  const handleDeleteDraft = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      optimisticDeleteDraft(message.id);
+    },
+    [message.id, optimisticDeleteDraft],
+  );
+
+  if (optimisticState.shouldHide) {
+    return null;
+  }
 
   if (!draft) {
     return (
@@ -636,7 +595,7 @@ const Draft = memo(({ message }: { message: { id: string } }) => {
         <div
           key={message.id}
           className={cn(
-            'group relative mx-[8px] flex cursor-pointer flex-col items-start overflow-clip rounded-[10px] border-transparent py-3 text-left text-sm transition-all',
+            'group relative mx-[8px] flex cursor-pointer flex-col items-start overflow-clip rounded-[10px] border-transparent py-3 text-left text-sm',
           )}
         >
           <div
@@ -668,14 +627,37 @@ const Draft = memo(({ message }: { message: { id: string } }) => {
       <div
         key={message.id}
         className={cn(
-          'hover:bg-offsetLight hover:bg-primary/5 group relative mx-[8px] flex cursor-pointer flex-col items-start overflow-clip rounded-[10px] border-transparent py-3 text-left text-sm transition-all hover:opacity-100',
+          'hover:bg-offsetLight dark:hover:bg-primary/5 group relative mx-[8px] flex cursor-pointer flex-col items-start overflow-visible rounded-[10px] border-transparent py-3 text-left text-sm hover:opacity-100',
         )}
       >
         <div
           className={cn(
-            'bg-primary absolute inset-y-0 left-0 w-1 -translate-x-2 transition-transform ease-out',
+            'dark:bg-panelDark shadow-xs absolute right-2 z-20 flex -translate-y-1/2 items-center gap-1 rounded-xl border bg-white p-1 opacity-0 group-hover:opacity-100',
+            index === 0 ? 'top-4' : 'top-[-1px]',
           )}
-        />
+          aria-busy={optimisticState.isRemoving}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 hover:bg-[#FDE4E9] dark:hover:bg-[#411D23] [&_svg]:size-3.5"
+                aria-label="Delete draft"
+                disabled={optimisticState.isRemoving}
+                onClick={handleDeleteDraft}
+              >
+                <Trash className="fill-[#F43F5E]" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent
+              side={index === 0 ? 'bottom' : 'top'}
+              className="dark:bg-panelDark mb-1 bg-white"
+            >
+              {m['common.actions.Bin']()}
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <div className="flex w-full items-center justify-between gap-4 px-4">
           <div className="flex w-full justify-between">
             <div className="w-full">
@@ -719,14 +701,31 @@ const Draft = memo(({ message }: { message: { id: string } }) => {
   );
 });
 
+Draft.displayName = 'Draft';
+
 export const MailList = memo(
   function MailList() {
     const { folder } = useParams<{ folder: string }>();
     const { data: settingsData } = useSettings();
     const [, setThreadId] = useQueryState('threadId');
     const [, setDraftId] = useQueryState('draftId');
-    const [category, setCategory] = useQueryState('category');
     const [searchValue, setSearchValue] = useSearchValue();
+    const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
+
+    useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setAnchorIndex(null);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [setAnchorIndex]);
+
     const [{ refetch, isLoading, isFetching, isFetchingNextPage, hasNextPage }, items, , loadMore] =
       useThreads();
     const trpc = useTRPC();
@@ -738,28 +737,6 @@ export const MailList = memo(
     useEffect(() => {
       itemsRef.current = items;
     }, [items]);
-
-    const allCategories = Categories();
-
-    // Skip category filtering for drafts, spam, sent, archive, and bin pages
-    const shouldFilter = !['draft', 'spam', 'sent', 'archive', 'bin'].includes(folder || '');
-
-    // Set initial category search value only if not in special folders
-    useEffect(() => {
-      if (!shouldFilter) return;
-
-      const currentCategory = category
-        ? allCategories.find((cat) => cat.id === category)
-        : allCategories.find((cat) => cat.id === 'All Mail');
-
-      if (currentCategory && searchValue.value === '') {
-        setSearchValue({
-          value: currentCategory.searchValue || '',
-          highlight: '',
-          folder: '',
-        });
-      }
-    }, [allCategories, category, shouldFilter, searchValue.value, setSearchValue]);
 
     // Add event listener for refresh
     useEffect(() => {
@@ -790,23 +767,20 @@ export const MailList = memo(
     const getSelectMode = useCallback((): MailSelectMode => {
       const isAltPressed =
         isKeyPressed('Alt') || isKeyPressed('AltLeft') || isKeyPressed('AltRight');
-
       const isShiftPressed =
         isKeyPressed('Shift') || isKeyPressed('ShiftLeft') || isKeyPressed('ShiftRight');
+      const isCtrlPressed = isKeyPressed('Control') || isKeyPressed('Meta');
 
-      if (isKeyPressed('Control') || isKeyPressed('Meta')) {
+      if (isShiftPressed && !isCtrlPressed) {
+        return 'range';
+      }
+      if (isCtrlPressed) {
         return 'mass';
       }
-
       if (isAltPressed && isShiftPressed) {
         console.log('Select All Below mode activated'); // Debug log
         return 'selectAllBelow';
       }
-
-      if (isShiftPressed) {
-        return 'range';
-      }
-
       return 'single';
     }, [isKeyPressed]);
 
@@ -821,6 +795,9 @@ export const MailList = memo(
 
         setMail((prevMail) => {
           const mail = prevMail;
+          const clickedIndex = itemsRef.current.findIndex((item) => item.id === itemId);
+          if (clickedIndex === -1) return mail;
+
           switch (currentMode) {
             case 'mass': {
               const newSelected = mail.bulkSelected.includes(itemId)
@@ -848,8 +825,16 @@ export const MailList = memo(
               return { ...mail, bulkSelected: [itemId] };
             }
             case 'range': {
-              console.log('Range selection mode - not fully implemented');
-              return { ...mail, bulkSelected: [itemId] };
+              console.log('Range selection mode');
+              if (anchorIndex === null) {
+                return { ...mail, bulkSelected: [itemId] };
+              }
+              const start = Math.min(anchorIndex, clickedIndex);
+              const end = Math.max(anchorIndex, clickedIndex);
+              const rangeIds = itemsRef.current.slice(start, end + 1).map((item) => item.id);
+              const newSelected = [...new Set([...mail.bulkSelected, ...rangeIds])];
+
+              return { ...mail, bulkSelected: newSelected };
             }
             default: {
               console.log('Single selection mode');
@@ -858,7 +843,7 @@ export const MailList = memo(
           }
         });
       },
-      [getSelectMode, setMail],
+      [getSelectMode, setMail, anchorIndex],
     );
 
     const [, setFocusedIndex] = useAtom(focusedIndexAtom);
@@ -871,6 +856,11 @@ export const MailList = memo(
         console.log('Mail click with mode:', mode);
 
         if (mode !== 'single') {
+          const messageThreadId = message.threadId ?? message.id;
+          const clickedIndex = itemsRef.current.findIndex((item) => item.id === messageThreadId);
+          if (clickedIndex !== -1 && mode !== 'range') {
+            setAnchorIndex(clickedIndex);
+          }
           return handleSelectMail(message);
         }
 
@@ -880,8 +870,8 @@ export const MailList = memo(
         const clickedIndex = itemsRef.current.findIndex((item) => item.id === messageThreadId);
         setFocusedIndex(clickedIndex);
         if (message.unread && autoRead) optimisticMarkAsRead([messageThreadId], true);
-        await setThreadId(messageThreadId);
-        await setDraftId(null);
+        setThreadId(messageThreadId);
+        setDraftId(null);
         // Don't clear activeReplyId - let ThreadDisplay handle Reply All auto-opening
       },
       [
@@ -909,15 +899,12 @@ export const MailList = memo(
     }, [isLoading, isFiltering, setSearchValue]);
 
     const clearFilters = () => {
-      setCategory(null);
       setSearchValue({
         value: '',
         highlight: '',
         folder: '',
       });
     };
-
-    const { resolvedTheme } = useTheme();
 
     const filteredItems = useMemo(() => items.filter((item) => item.id), [items]);
 
@@ -981,7 +968,7 @@ export const MailList = memo(
                     <p className="text-lg">It's empty here</p>
                     <p className="text-md text-muted-foreground dark:text-white/50">
                       Search for another email or{' '}
-                      <button className="underline" onClick={clearFilters}>
+                      <button type="button" className="underline cursor-pointer" onClick={clearFilters}>
                         clear filters
                       </button>
                     </p>
@@ -993,16 +980,15 @@ export const MailList = memo(
                 <VList
                   ref={vListRef}
                   count={filteredItems.length}
-                  overscan={20}
-                  keepMounted={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+                  overscan={5}
+                  itemSize={100}
                   className="scrollbar-none flex-1 overflow-x-hidden"
-                  children={vListRenderer}
                   onScroll={() => {
                     if (!vListRef.current) return;
                     const endIndex = vListRef.current.findEndIndex();
                     if (
                       // if the shown items are last 5 items, load more
-                      Math.abs(filteredItems.length - 1 - endIndex) < 5 &&
+                      Math.abs(filteredItems.length - 1 - endIndex) < 7 &&
                       !isLoading &&
                       !isFetchingNextPage &&
                       !isFetchingMail &&
@@ -1011,18 +997,20 @@ export const MailList = memo(
                       void loadMore();
                     }
                   }}
-                />
+                >
+                  {vListRenderer}
+                </VList>
               </div>
             )}
           </>
         </div>
-        <div className="w-full pt-4 text-center">
+        <div className="w-full pt-2 text-center">
           {isFetching ? (
             <div className="text-center">
               <div className="mx-auto h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent dark:border-white dark:border-t-transparent" />
             </div>
           ) : (
-            <div className="h-4" />
+            <div className="h-2" />
           )}
         </div>
       </>
@@ -1077,14 +1065,6 @@ export const MailLabels = memo(
     return JSON.stringify(prev.labels) === JSON.stringify(next.labels);
   },
 );
-
-function getNormalizedLabelKey(label: string) {
-  return label.toLowerCase().replace(/^category_/i, '');
-}
-
-function capitalize(str: string) {
-  return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
-}
 
 function getLabelIcon(label: string) {
   const normalizedLabel = label.toLowerCase().replace(/^category_/i, '');

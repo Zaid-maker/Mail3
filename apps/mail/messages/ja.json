@@ -165,8 +165,13 @@
       "attachments": "添付ファイル",
       "attachmentCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "添付ファイル",
             "countPlural=one": "添付ファイル",
@@ -176,8 +181,13 @@
       ],
       "fileCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "ファイル",
             "countPlural=one": "ファイル",
@@ -249,12 +259,17 @@
       "search": "メモを検索…",
       "noteCount": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "Add notes",
-            "countPlural=one": "# note",
-            "countPlural=other": "# notes"
+            "countPlural=one": "# 件のメモ",
+            "countPlural=other": "# 件のメモ"
           }
         }
       ],
@@ -312,12 +327,17 @@
     "mail": {
       "replies": [
         {
-          "declarations": ["input count", "local countPlural = count: plural"],
-          "selectors": ["countPlural"],
+          "declarations": [
+            "input count",
+            "local countPlural = count: plural"
+          ],
+          "selectors": [
+            "countPlural"
+          ],
           "match": {
             "countPlural=0": "返信",
-            "countPlural=one": "返信 #個",
-            "countPlural=other": "返信 #個"
+            "countPlural=one": "# 件の返信",
+            "countPlural=other": "# 件の返信"
           }
         }
       ],
@@ -370,7 +390,8 @@
       "failedToMute": "ミュートに失敗しました",
       "failedToUnmute": "ミュート解除に失敗しました",
       "archived": "アーカイブしました",
-      "failedToArchive": "アーカイブに失敗しました"
+      "failedToArchive": "アーカイブに失敗しました",
+      "openInNewTab": "新しいタブで開く"
     },
     "units": {
       "mb": "{amount} MB"
@@ -404,7 +425,8 @@
       "livesupport": "ライブサポート",
       "feedback": "フィードバック",
       "settings": "設定",
-      "voice": "音声アシスタント"
+      "voice": "音声アシスタント",
+      "snoozed": "スヌーズ済み"
     },
     "settings": {
       "general": "一般",
@@ -414,7 +436,7 @@
       "signatures": "署名",
       "shortcuts": "ショートカット",
       "labels": "ラベル",
-      "categories": "カテゴリー",
+      "categories": "表示",
       "dangerZone": "危険ゾーン",
       "deleteAccount": "アカウントを削除",
       "privacy": "プライバシー"
@@ -446,11 +468,15 @@
         "noResultsFound": "結果が見つかりませんでした",
         "zeroSignature": "Zero署名",
         "zeroSignatureDescription": "メールにZero署名を追加します。",
+        "undoSendEnabled": "送信取り消し",
+        "undoSendEnabledDescription": "メール送信後30秒以内の取り消しを許可します。",
         "defaultEmailAlias": "デフォルトのメールエイリアス",
         "selectDefaultEmail": "デフォルトのメールを選択",
         "defaultEmailDescription": "このメールは新しいメールを作成する際のデフォルトの「差出人」アドレスとして使用されます",
         "autoRead": "自動既読",
-        "autoReadDescription": "メールをクリックすると自動的に既読としてマークします。"
+        "autoReadDescription": "メールをクリックすると自動的に既読としてマークします。",
+        "animations": "アニメーション",
+        "animationsDescription": "メール間の切り替え時にスムーズなアニメーションを有効にする"
       },
       "connections": {
         "title": "メールの接続",
